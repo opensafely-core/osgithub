@@ -12,7 +12,7 @@ repos:
       language_version: python3.9
       additional_dependencies: [
         "flake8-builtins",
-        "flake8-implicit-str-concat"
+#        "flake8-implicit-str-concat"
       ]
 
   - repo: https://github.com/pre-commit/mirrors-isort
@@ -32,8 +32,3 @@ repos:
     - id: check-toml
     - id: check-yaml
     - id: detect-private-key
-
-  - repo: https://github.com/stratasan/hadolint-pre-commit
-    rev: cdefcb0
-    hooks:
-    - id: hadolint
