@@ -12,10 +12,10 @@ exclude = '''
 
 [tool.coverage.run]
 branch = true
-omit = [".venv/*"]
+omit = [".venv/*", "setup.py"]
 
 [tool.coverage.report]
-fail_under = 100
+fail_under = 96
 skip_covered = true
 
 [tool.coverage.html]
@@ -30,3 +30,6 @@ skip_glob = [".direnv", "venv", ".venv"]
 use_parentheses = true
 
 [tool.pytest.ini_options]
+env = [
+  "REQUESTS_CACHE_NAME=test_cache",
+]
