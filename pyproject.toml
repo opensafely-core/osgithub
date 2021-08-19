@@ -15,7 +15,7 @@ branch = true
 omit = [".venv/*", "setup.py"]
 
 [tool.coverage.report]
-fail_under = 96
+fail_under = 100
 skip_covered = true
 
 [tool.coverage.html]

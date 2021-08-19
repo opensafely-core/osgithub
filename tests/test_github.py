@@ -279,6 +279,13 @@ def test_github_repo_get_contents_single_file(httpretty):
     # decoded content retrieves the original str contents
     assert content_file.decoded_content == str_content
 
+    # get contents with content fetch type
+    content_file, fetch_type = repo.get_contents(
+        "test-folder/test-file.html", ref="master", return_fetch_type=True
+    )
+    assert content_file.name == "test-file.html"
+    assert fetch_type == "contents"
+
 
 def test_github_repo_get_last_updated(httpretty):
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
@@ -345,6 +352,50 @@ def test_github_repo_get_contents_exceptions(
     )
     with pytest.raises(expected_exception, match=expected_match):
         repo.get_contents("test-folder/test-file.html", ref="master")
+
+
+@pytest.mark.parametrize(
+    "filepath,expected_filename",
+    [
+        ("test-folder/test-file.html", "test-file.html"),
+        ("test-folder/test-file1.html", "test-file1.html"),
+        ("test-folder/test-file2.html", None),
+    ],
+)
+def test_github_repo_matching_file_from_parent_contents(
+    httpretty, filepath, expected_filename
+):
+    repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
+    # Mock the github requests
+    # get the parent folder contents
+    httpretty.register_uri(
+        httpretty.GET,
+        "https://api.github.com/repos/test/foo/contents/test-folder?ref=main",
+        status=200,
+        body=json.dumps(
+            [
+                {
+                    "name": "test-file.html",
+                    "path": "test-folder/test-file.html",
+                    "sha": "abcd1234",
+                    "size": 1234,
+                    "encoding": "base64",
+                },
+                {
+                    "name": "test-file1.html",
+                    "path": "test-folder/test-file1.html",
+                    "sha": "abcd2345",
+                    "size": 1234,
+                    "encoding": "base64",
+                },
+            ],
+        ),
+    )
+    matching_file = repo.matching_file_from_parent_contents(filepath, "main")
+    if expected_filename is None:
+        assert matching_file is None
+    else:
+        assert matching_file.name == expected_filename
 
 
 def test_github_repo_get_contents_folder(httpretty):
@@ -537,22 +588,88 @@ def test_github_repo_override_url():
     assert repo.url == "https://github.com/test/foo"
 
 
-@pytest.mark.django_db
-def test_clear_cache(reset_environment_after_test):
+def test_clear_cache(httpretty, reset_environment_after_test):
+    # mock the requests
+    httpretty.register_uri(
+        httpretty.GET,
+        "https://api.github.com/repos/test/foo",
+        status=200,
+        body=json.dumps({"name": "foo"}),
+    )
+    httpretty.register_uri(httpretty.GET, "https://www.test.com/", status=200)
+
     # make sure we start with a fresh cache
     remove_cache_file_if_exists()
     client = GithubClient(use_cache=True)
     # no github requests have been made, so cache is currently clear
     assert list(client.session.cache.urls) == []
 
-    repo = client.get_repo("opensafely/output-explorer-test-repo")
-    repo.get_contents("test-outputs/output.html", "master")
+    # A real repo
+    repo = client.get_repo("test/foo")
 
-    # 3 calls made, to get repo, get contents and get commits
-    assert len(list(client.session.cache.urls)) == 3
+    # 1 call made, to get contents
+    assert len(list(client.session.cache.urls)) == 1
     # make another request using this cache session
-    client.session.get("https://www.opensafely.org/")
-    assert len(list(client.session.cache.urls)) == 4
+    client.session.get("https://www.test.com/")
+    assert len(list(client.session.cache.urls)) == 2
     # Clearing the cache only clears urls related to this report
     repo.clear_cache()
-    assert list(client.session.cache.urls) == ["https://www.opensafely.org/"]
+    assert list(client.session.cache.urls) == ["https://www.test.com/"]
+
+
+def test_integration(reset_environment_after_test):
+    """Test repo methods with a real github repo"""
+    # make sure we start with a fresh cache
+    remove_cache_file_if_exists()
+    client = GithubClient(use_cache=True)
+    # Set up a real repo
+    repo = client.get_repo("opensafely/output-explorer-test-repo")
+
+    # Fetch a known folder
+    contents = repo.get_contents("test-outputs", ref="master")
+    assert len(contents) == 4
+    assert sorted([contentfile.name for contentfile in contents]) == [
+        "output.html",
+        "sro-measures.html",
+        "vaccine-coverage-new.html",
+        "vaccine-coverage-original.html",
+    ]
+
+    # Fetch a file
+    contents, fetch_type = repo.get_contents(
+        "test-outputs/output.html", ref="master", return_fetch_type=True
+    )
+    assert contents.name == "output.html"
+    assert fetch_type == "contents"
+
+    # Fetch a non-existent file
+    with pytest.raises(GithubAPIException):
+        repo.get_contents("test-outputs/output-unknown.html", ref="master")
+
+    # Fetch a non-existent branch
+    with pytest.raises(GithubAPIException):
+        repo.get_contents("test-outputs/output.html", ref="foo")
+
+    # Fetch README
+    readme = repo.get_readme(tag="master")
+    assert (
+        readme
+        == "# output-explorer Tests\n\nThis is a test repo for use by output-explorer's tests.\n\n"
+    )
+
+    # Fetch details
+    details = repo.get_repo_details()
+    assert details == {
+        "name": "output-explorer-test-repo",
+        "about": "A test repo for output-explorer's tests",
+    }
+
+    # Fetch tags
+    tagged_sha = "7a6f60e8e74b9c93a9c6322b3151ee437fa4be61"
+    tags = repo.get_tags()
+    assert len(tags) >= 1
+    assert {"tag_name": "test-tag", "sha": tagged_sha} in tags
+
+    # get commit details
+    commit = repo.get_commit(sha=tagged_sha)
+    assert commit == {"author": "Ben Butler-Cole", "date": "2021-06-02T10:52:37Z"}
