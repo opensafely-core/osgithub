@@ -2,7 +2,7 @@
 
 ## System requirements
 
-### just
+### just >=0.9.9
 
 ```sh
 # macOS
@@ -31,4 +31,9 @@ just dev_setup
 Run the tests with:
 ```
 just test <args>
+```
+
+Run only the non-integration tests (that don't call GitHub):
+```
+just test '-m "not integration"'
 ```

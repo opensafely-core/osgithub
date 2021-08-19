@@ -1,6 +1,6 @@
-# github-api-cache
+# osgithub
 
-A thin wrapper around the GitHub API, with cached requests by default.
+A thin wrapper around the GitHub API.
 
 ## Environment
 Set the following environment variables:
@@ -10,39 +10,92 @@ Set the following environment variables:
 
 ## Usage
 
+### Create a client
 ```
 from github_api_cache import GithubClient
-
-# use the default token, if one is set in the envrionment.
+# Use the default token, if one is set in the environment.
 client = GithubClient()
-
-# get a repo (returns a GithubRepo)
-repo = client.get_repo("opensafely-core/github-api-cache")
-
-# get a list of branches
-repo.get_branches()
-
-# get a list of open pull requests
-repo.get_pull_requests()
-
-# get the contents of the `github_api_cache` directory on branch `main`
-# returns a list of GithubContentFile objects
-repo.get_contents("github_api_cache", "main")
-
-# get a single file; returns a GithubContentFile
-repo.get_contents("github_api_cache/__init__.py", "main")
 ```
+
+### get a repo (returns a GithubRepo)
+```
+repo = client.get_repo("opensafely-core/osgithub")
+```
+
+#### get a list of branches
+```
+repo.get_branches()
+```
+And branch count:
+```
+repo.branch_count
+```
+
+#### get a list of pull requests
+Provide a `page` argument to get more pages than just the first one (30 result are returned per page).
+```
+repo.get_pull_requests(page=1)
+```
+
+By default, this fetches open PRs only.  To retrieve other states, pass `state="closed"` or `state="open"`
+
+Pull request counts:
+```
+repo.pull_request_count
+repo.open_pull_request_count
+```
+
+#### get the contents of the `osgithub` directory on branch `main`
+```
+# returns a list of GithubContentFile objects
+repo.get_contents("osgithub", "main")
+```
+
+#### get a single file; returns a GithubContentFile
+```
+repo.get_contents("osgithub/__init__.py", "main")
+```
+
+#### get_commits_for_file(self, path, ref, number_of_commits=1):
+Returns a list of commits, just the last one by default
+```
+repo.get_commits_for_file("osgithub", "main")
+```
+To return more commits:
+```
+repo.get_commits_for_file("osgithub", "main", number_of_commits=10)
+```
+
+Get details for a single commit by sha - returns author and date of the commit
+```
+repo.get_commit("7a6f60e8e74b9c93a9c6322b3151ee437fa4be61")
+```
+
+
+#### Repo information
+
+Fetch the HTML from the README.md of repo:
+```
+repo.get_readme(tag="main")
+```
+
+Fetch the About and Name of the repo:
+```
+repo.get_details()
+```
+
+Fetch tags with name and sha:
+```
+repo.get_tags()
+```
+
 
 ### Caching
-All requests are cached by default, using a sqlite backend.
+Requests can optionally be cached, using a sqlite backend.
 
-To specify other cache options:
-
-Disable caching:
+To use caching:
 ```
-client = GithubClient(use_cache=False)
-OR
-client = GithubClient(expire_after=0)
+client = GithubClient(use_cache=True)
 ```
 
 Set a global expiry for the session (never expires by default):
@@ -59,6 +112,11 @@ urls_expire_after = {
     '*/commits': 30,  # expire requests to get commits after 30 secs
 }
 client = GithubClient(urls_expire_after=urls_expire_after)
+```
+
+#### Clear the cache for this repo
+```
+repo.clear_cache()
 ```
 
 ## Developer docs

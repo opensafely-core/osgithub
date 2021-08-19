@@ -1,3 +1,15 @@
+"""A tool for interacting with GitHub repos.
+
+This module provides a wrapper around the GitHub API, for interaction with repos and
+repo contents.
+Optionally uses requests caching to avoid repeated calls to the API.
+
+  Typical usage example:
+
+  client = GithubClient(token='my-github-token')
+  repo = client.get_repo('my-github-user/my-repo')
+  content = repo.get_contents('test-folder', ref='main')
+"""
 import json
 from base64 import b64decode
 from datetime import datetime
@@ -21,6 +33,21 @@ class GithubClient:
     """
     A connection to the Github API
     Optionally uses request caching
+
+    Attributes:
+        user_agent (str): set from GITHUB_USER_AGENT environment variable; a string to
+        identify the application
+        base_url (str): the base github api url ('https://api.github.com')
+        use_cache (bool): whether to use request caching; defaults to False
+        token (str): GitHub token. Optional; required to access private repos and avoid
+        anonymous rate-limiting
+        expire_after (int): For cached requests, set a global expiry for the session (default = -1; never expires)
+        urls_expire_after (dict): Set expiry on specific url patterns (falls back to `expire_after` if no match found), e.g.
+            urls_expire_after = {
+                '*/pulls': 60,  # expire requests to get pull requests after 60 secs
+                '*/branches': 60 * 5, # expire requests to get branches after 5 mins
+                '*/commits': 30,  # expire requests to get commits after 30 secs
+            }
     """
 
     user_agent = environ.get("GITHUB_USER_AGENT", "")
@@ -29,6 +56,7 @@ class GithubClient:
     def __init__(
         self, use_cache=False, token=None, expire_after=-1, urls_expire_after=None
     ):
+        """Inits GithubClient, sets headers with token if provided and initialises session"""
         token = token or environ.get("GITHUB_TOKEN", None)
         self.headers = {
             "Accept": "application/vnd.github.v3+json",
@@ -49,7 +77,16 @@ class GithubClient:
     def get_json(self, path_segments, **add_args):
         """
         Builds and calls a url from the base and path segments
-        Returns the response as json
+
+        Args:
+            path_segments (list of str): segments of path after the base url
+            **add_args: any querystring args to be added (k=v pairs)
+
+        Returns: json
+
+        Raises:
+            GithubAPIFileTooLarge: if the file is too large
+            GithubAPIException: other api errors
         """
         f = furl(self.base_url)
         f.path.segments += path_segments
@@ -75,7 +112,13 @@ class GithubClient:
 
     def get_repo(self, owner_and_repo):
         """
-        Ensure a repo exists and return a GithubRepo
+        Ensure a repo exists
+
+        Args:
+            owner_and_repo (str): owner and repo in slash-separated format e.g. opensafely/foo
+
+        Returns:
+            GithubRepo
         """
         owner, repo = owner_and_repo.split("/")
         repo_path_seqments = ["repos", owner, repo]
@@ -86,7 +129,13 @@ class GithubClient:
 
 class GithubRepo:
     """
-    Fetch contents of a Github Repo
+    Interacts with a Github Repo
+
+    Attributes:
+        client (a GithubClient)
+        owner (str): Repo owner
+        name (str): Repo name
+        repo_path_segments (list): base path segments for this repo, generated from owner and name
     """
 
     def __init__(self, client, owner, name):
@@ -98,21 +147,37 @@ class GithubRepo:
 
     @property
     def url(self):
+        """
+        Gets the GitHub URL for this repo
+
+        Returns:
+            the repo URL (str)
+        """
         if self._url is None:
             self._url = f"https://github.com/{self.owner}/{self.name}"
         return self._url
 
     def get_pull_requests(self, state="open", page=1):
+        """
+        Fetches pull request information for the repo
+
+        Args:
+            state (str): Pull request state to fetch; 'open', 'closed', 'all'
+            page (int): Page to fetch, defaults to 1 (first page).  Max 30 items per page are returned.
+
+        Returns:
+            list of dicts
+        """
         path_segments = [*self.repo_path_segments, "pulls"]
         return self.client.get_json(path_segments, state=state, page=page, per_page=30)
 
     def pull_request_count(self, state):
         """
-        Get the total pull request count for this repo.  By default PRs are returned in
-        pages of 30 per page.
+        Gets the total pull request count for this repo, fetching multiple pages if necessary.
 
         Args:
-            state (str): open, closed, all
+            state (str): Pull request state to fetch; 'open', 'closed', 'all'
+
         Returns:
             int
         """
@@ -130,20 +195,25 @@ class GithubRepo:
     @property
     def open_pull_request_count(self):
         """
-        Count of open pull requests
+        Gets count of open pull requests
+
         Returns:
             int
         """
         return self.pull_request_count("open")
 
     def get_branches(self):
+        """
+        Fetches branch information from repo
+        """
         path_segments = [*self.repo_path_segments, "branches"]
         return self.client.get_json(path_segments)
 
     @property
     def branch_count(self):
         """
-        Count of open repo branches
+        Gets count of open repo branches
+
         Returns:
             int
         """
@@ -151,7 +221,7 @@ class GithubRepo:
 
     def get_contents(self, path, ref, return_fetch_type=False, from_git_blob=False):
         """
-        Fetch the contents of a path and ref (branch/commit/tag)
+        Fetches the contents of a path and ref (branch/commit/tag)
 
         Args:
             path (str): path to the file in the repo
@@ -194,15 +264,27 @@ class GithubRepo:
         return contents
 
     def get_parent_contents(self, path, ref):
+        """
+        Fetches the contents of the folder that contains `path`
+
+        Args:
+            path (str): path to the file/folder in the repo
+            ref (str): branch/tag/sha
+
+        Returns:
+            list of GithubContentFile
+        """
         parent_folder_path = str(Path(path).parent)
         return self.get_contents(parent_folder_path, ref)
 
     def matching_file_from_parent_contents(self, path, ref):
         """
         Given a filepath, return the first matching file from the file's parent folder
+
         Args:
             path (str): path to the file in the repo
             ref (str): branch/tag/sha
+
         Returns:
             GithubContentFile
         """
@@ -218,14 +300,16 @@ class GithubRepo:
 
     def get_contents_from_git_blob(self, path, ref):
         """
-        Get all the content files from the parent folder (this doesn't download the actual
+        Gets all the content files from the parent folder (this doesn't download the actual
         content itself, but returns a list of GithubContentFile objects, from which we can
         obtain sha for the relevant file)
+
         Args:
             path (str): path to the file in the repo
             ref (str): branch/tag/sha
+
         Returns:
-            dicts
+            dict
         """
         # Find the file in the parent folder whose name matches the file we want
         matching_content_file = self.matching_file_from_parent_contents(path, ref)
@@ -234,9 +318,11 @@ class GithubRepo:
 
     def get_git_blob(self, sha):
         """
-        Fetch a git blob by sha
+        Fetches a git blob by sha
+
         Args:
             sha (str): commit sha
+
         Returns:
             dict
         """
@@ -246,10 +332,12 @@ class GithubRepo:
     def get_commits_for_file(self, path, ref, number_of_commits=1):
         """
         Fetches commits for a file (just the latest commit by default)
+
         Args:
             path (str): path to the file in the repo
             ref (str): branch/tag/sha
             number_of_commits (str): number of commits to return (default 1)
+
         Returns:
             list of dicts: one for each commit
         """
@@ -261,10 +349,12 @@ class GithubRepo:
 
     def get_last_updated(self, path, ref):
         """
-        Find the date of the last commit for a file
+        Finds the date of the last commit for a file
+
         Args:
             path (str): path to the file in the repo
             ref (str): branch/tag/sha
+
         Returns:
             str: HTML from readme (at ROOT)
         """
@@ -275,8 +365,10 @@ class GithubRepo:
     def get_readme(self, tag="main"):
         """
         Fetches the README.md of repo
+
         Args:
             tag (str): tag that you want the readme for.
+
         Returns:
             str: HTML from readme (at ROOT)
         """
@@ -288,6 +380,7 @@ class GithubRepo:
     def get_repo_details(self):
         """
         Fetches the About and Name of the repo
+
         Returns:
             dict: 2 key dictionary with about and name as keys
         """
@@ -299,6 +392,7 @@ class GithubRepo:
     def get_tags(self):
         """
         Gets a list of tags associated with a repo
+
         Returns:
             List of Dicts (1 per tag), with keys 'tag_name' and 'sha'
         """
@@ -311,9 +405,11 @@ class GithubRepo:
 
     def get_commit(self, sha):
         """
-        Get details of a specific commit
+        Gets details of a specific commit
+
         Args:
             sha (str): commit sha
+
         Returns:
             Dict: Details of commit, with keys of 'author' and 'date'
         """
@@ -325,7 +421,7 @@ class GithubRepo:
         }
 
     def clear_cache(self):
-        """Clear all request cache urls for this repo"""
+        """Clears all request cache urls for this repo"""
         cached_urls = list(self.client.session.cache.urls)
         repo_path = f"{self.owner}/{self.name}".lower()
         for cached_url in cached_urls:
@@ -334,7 +430,15 @@ class GithubRepo:
 
 
 class GithubContentFile:
-    """Holds information about a single file in a repo"""
+    """
+    Holds information about a single file in a repo
+
+    Attributes:
+        name (str): filename
+        last_updated (date): Date of last commit
+        content (str): File content
+        sha (str): file sha
+    """
 
     def __init__(self, name, last_updated, content, sha):
         self.name = name
@@ -344,6 +448,15 @@ class GithubContentFile:
 
     @classmethod
     def from_json(cls, json_input):
+        """
+        Creates an instance of this class from a api response json
+
+        Args:
+            json_input (dict): dict representing a file retrieved by the Github API
+
+        Returns:
+            GithubContentFile
+        """
         return cls(
             name=json_input.get("name"),
             content=json_input.get("content"),
@@ -353,6 +466,12 @@ class GithubContentFile:
 
     @property
     def decoded_content(self):
+        """
+        Decodes the base64-encoded content
+
+        Returns:
+            str: decoded content
+        """
         # self.content may be None when /contents has returned a list of files
         if self.content:
             return b64decode(self.content).decode("utf-8")
