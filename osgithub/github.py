@@ -7,7 +7,7 @@ Optionally uses requests caching to avoid repeated calls to the API.
   Typical usage example:
 
   client = GithubClient(token='my-github-token')
-  repo = client.get_repo('my-github-user/my-repo')
+  repo = client.get_repo('my-github-user', 'my-repo')
   content = repo.get_contents('test-folder', ref='main')
 """
 import json
@@ -110,21 +110,21 @@ class GithubClient:
         response_json = response.json()
         return response_json
 
-    def get_repo(self, owner_and_repo):
+    def get_repo(self, owner, name):
         """
         Ensure a repo exists
 
         Args:
-            owner_and_repo (str): owner and repo in slash-separated format e.g. opensafely/foo
+            owner (str): repo owner
+            name (str): repo name
 
         Returns:
             GithubRepo
         """
-        owner, repo = owner_and_repo.split("/")
-        repo_path_seqments = ["repos", owner, repo]
+        repo_path_seqments = ["repos", owner, name]
         # call it to raise exceptions in case it doesn't exist
         self.get_json(repo_path_seqments)
-        return GithubRepo(self, owner, repo)
+        return GithubRepo(self, owner, name)
 
 
 class GithubRepo:

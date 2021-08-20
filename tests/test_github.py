@@ -30,7 +30,7 @@ def test_github_client_get_repo(httpretty):
     # Mock the github request
     register_uri(httpretty, "repos/test/foo", body={"name": "foo"})
     client = GithubClient()
-    repo = client.get_repo("test/foo")
+    repo = client.get_repo("test", "foo")
     assert repo.repo_path_segments == ["repos", "test", "foo"]
 
 
@@ -50,7 +50,7 @@ def test_github_client_get_repo_not_found(httpretty):
     register_uri(httpretty, "repos/test/bar", status=404, body={"message": "Not found"})
     client = GithubClient()
     with pytest.raises(GithubAPIException, match="Not found"):
-        client.get_repo("test/bar")
+        client.get_repo("test", "bar")
 
 
 @pytest.mark.parametrize("use_cache", [True, False])
@@ -59,7 +59,7 @@ def test_github_client_get_repo_with_cache(httpretty, use_cache):
 
     # set up mock request with valid response and call it
     register_uri(httpretty, "repos/test/test-cache", body={"name": "foo"})
-    client.get_repo("test/test-cache")
+    client.get_repo("test", "test-cache")
 
     # re-mock the repos request to a 404, should raise an exception if called directly
     register_uri(
@@ -68,11 +68,11 @@ def test_github_client_get_repo_with_cache(httpretty, use_cache):
 
     if use_cache:
         # No exception raised because the first response was cached
-        client.get_repo("test/test-cache")
+        client.get_repo("test", "test-cache")
     else:
         # Exception raised because the repos endpoint was fetched again
         with pytest.raises(GithubAPIException, match="Not found"):
-            client.get_repo("test/test-cache")
+            client.get_repo("test", "test-cache")
 
 
 @pytest.mark.parametrize("state", ["open", "closed"])
@@ -563,7 +563,7 @@ def test_clear_cache(httpretty, reset_environment_after_test):
     assert list(client.session.cache.urls) == []
 
     # A real repo
-    repo = client.get_repo("test/foo")
+    repo = client.get_repo("test", "foo")
 
     # 1 call made, to get contents
     assert len(list(client.session.cache.urls)) == 1
@@ -582,7 +582,7 @@ def test_integration(reset_environment_after_test):
     remove_cache_file_if_exists()
     client = GithubClient(use_cache=True)
     # Set up a real repo
-    repo = client.get_repo("opensafely/output-explorer-test-repo")
+    repo = client.get_repo("opensafely", "output-explorer-test-repo")
 
     # Fetch a known folder
     contents = repo.get_contents("test-outputs", ref="master")
