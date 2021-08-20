@@ -33,3 +33,6 @@ use_parentheses = true
 env = [
   "REQUESTS_CACHE_NAME=test_cache",
 ]
+markers = [
+    "integration: tests that call GitHub for real",
+]

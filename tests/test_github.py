@@ -4,6 +4,7 @@ from datetime import date
 from os import environ
 
 import pytest
+from furl import furl
 from requests.exceptions import HTTPError
 
 from osgithub import GithubAPIException, GithubClient, GithubRepo
@@ -11,31 +12,23 @@ from osgithub import GithubAPIException, GithubClient, GithubRepo
 from .conftest import remove_cache_file_if_exists
 
 
-def register_commits_uri(httpretty, owner, repo, path, sha, commit_dates):
-    commit_dates = (
-        [commit_dates] if not isinstance(commit_dates, list) else commit_dates
-    )
+def register_uri(httpretty, path, queryparams=None, status=200, body=None):
+    url = furl("https://api.github.com")
+    url.path.segments += [*path.split("/")]
+    if queryparams:
+        url.add(queryparams)
     httpretty.register_uri(
         httpretty.GET,
-        f"https://api.github.com/repos/{owner}/{repo}/commits?sha={sha}&path={path}",
-        status=200,
-        body=json.dumps(
-            [
-                {"commit": {"committer": {"date": commit_date}}}
-                for commit_date in commit_dates
-            ]
-        ),
+        url.url,
+        status=status,
+        body=json.dumps(body or ""),
+        match_querystring=True,
     )
 
 
 def test_github_client_get_repo(httpretty):
     # Mock the github request
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo",
-        status=200,
-        body=json.dumps({"name": "foo"}),
-    )
+    register_uri(httpretty, "repos/test/foo", body={"name": "foo"})
     client = GithubClient()
     repo = client.get_repo("test/foo")
     assert repo.repo_path_segments == ["repos", "test", "foo"]
@@ -54,12 +47,7 @@ def test_github_client_token(reset_environment_after_test):
 
 def test_github_client_get_repo_not_found(httpretty):
     # Mock the github request
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/bar",
-        status=404,
-        body=json.dumps({"message": "Not found"}),
-    )
+    register_uri(httpretty, "repos/test/bar", status=404, body={"message": "Not found"})
     client = GithubClient()
     with pytest.raises(GithubAPIException, match="Not found"):
         client.get_repo("test/bar")
@@ -70,21 +58,14 @@ def test_github_client_get_repo_with_cache(httpretty, use_cache):
     client = GithubClient(use_cache=use_cache)
 
     # set up mock request with valid response and call it
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/test-cache",
-        status=200,
-        body=json.dumps({"name": "foo"}),
-    )
+    register_uri(httpretty, "repos/test/test-cache", body={"name": "foo"})
     client.get_repo("test/test-cache")
 
     # re-mock the repos request to a 404, should raise an exception if called directly
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/test-cache",
-        status=404,
-        body=json.dumps({"message": "Not found"}),
+    register_uri(
+        httpretty, "repos/test/test-cache", status=404, body={"message": "Not found"}
     )
+
     if use_cache:
         # No exception raised because the first response was cached
         client.get_repo("test/test-cache")
@@ -128,14 +109,12 @@ def test_github_repo_get_pull_requests(httpretty, state):
         ],
     }
     # Mock the github requests
-    httpretty.register_uri(
-        httpretty.GET,
-        f"https://api.github.com/repos/test/foo/pulls?state={state}&page=1&per_page=30",
-        status=200,
-        body=json.dumps(pull_requests[state]),
-        match_querystring=True,
+    register_uri(
+        httpretty,
+        "repos/test/foo/pulls",
+        queryparams=dict(state=state, page=1, per_page=30),
+        body=pull_requests[state],
     )
-
     pulls = repo.get_pull_requests(state)
     assert pulls == pull_requests[state]
 
@@ -155,12 +134,11 @@ def test_github_repo_get_open_pull_request_count(httpretty):
         },
     ]
     # Mock the github requests
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/pulls?state=open&page=1&per_page=30",
-        status=200,
-        body=json.dumps(pull_requests),
-        match_querystring=True,
+    register_uri(
+        httpretty,
+        "repos/test/foo/pulls",
+        queryparams=dict(state="open", page=1, per_page=30),
+        body=pull_requests,
     )
     assert repo.open_pull_request_count == 2
 
@@ -186,13 +164,7 @@ def test_github_repo_get_branches(httpretty):
         },
     ]
     # Mock the github requests
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/branches",
-        status=200,
-        body=json.dumps(branches),
-        match_querystring=True,
-    )
+    register_uri(httpretty, "repos/test/foo/branches", body=branches)
     assert repo.get_branches() == branches
     assert repo.branch_count == 2
 
@@ -209,12 +181,11 @@ def test_github_repo_get_multipage_pull_request_count(httpretty):
             for pr_num in range(1, 31)
         ]
         # Mock the github request
-        httpretty.register_uri(
-            httpretty.GET,
-            f"https://api.github.com/repos/test/foo/pulls?state=open&page={i}&per_page=30",
-            status=200,
-            body=json.dumps(pull_requests),
-            match_querystring=True,
+        register_uri(
+            httpretty,
+            "repos/test/foo/pulls",
+            queryparams=dict(state="open", page=i, per_page=30),
+            body=pull_requests,
         )
     last_page_pull_requests = [
         {
@@ -224,13 +195,13 @@ def test_github_repo_get_multipage_pull_request_count(httpretty):
         }
         for pr_num in range(1, 11)
     ]
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/pulls?state=open&page=3&per_page=30",
-        status=200,
-        body=json.dumps(last_page_pull_requests),
-        match_querystring=True,
+    register_uri(
+        httpretty,
+        "repos/test/foo/pulls",
+        queryparams=dict(state="open", page=3, per_page=30),
+        body=last_page_pull_requests,
     )
+
     assert repo.open_pull_request_count == 70
 
 
@@ -249,39 +220,37 @@ def test_github_repo_get_contents_single_file(httpretty):
     # Content retrieved from GitHub is base64-encoded, decoded to str for json
     b64_content = b64encode(bytes(str_content, encoding="utf-8")).decode()
     # Mock the github request
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/contents/test-folder%2Ftest-file.html?ref=master",
-        status=200,
-        body=json.dumps(
-            {
-                "name": "test-file.html",
-                "path": "test-folder/test-file.html",
-                "sha": "abcd1234",
-                "size": 1234,
-                "encoding": "base64",
-                "content": b64_content,
-            }
-        ),
-    )
-    # commits uri is also called, to get the last_updated date
-    register_commits_uri(
+    reponse_json = {
+        "name": "test-file.html",
+        "path": "test-folder/test-file.html",
+        "sha": "abcd1234",
+        "size": 1234,
+        "encoding": "base64",
+        "content": b64_content,
+    }
+    register_uri(
         httpretty,
-        owner="test",
-        repo="foo",
-        path="test-folder%2Ftest-file.html",
-        sha="master",
-        commit_dates="2021-03-01T10:00:00Z",
+        "repos/test/foo/contents/test-folder/test-file.html",
+        queryparams=dict(ref="main"),
+        body=reponse_json,
     )
 
-    content_file = repo.get_contents("test-folder/test-file.html", ref="master")
+    commits_response = [{"commit": {"committer": {"date": "2021-03-01T10:00:00Z"}}}]
+    register_uri(
+        httpretty,
+        "repos/test/foo/commits",
+        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        body=commits_response,
+    )
+
+    content_file = repo.get_contents("test-folder/test-file.html", ref="main")
     assert content_file.name == "test-file.html"
     # decoded content retrieves the original str contents
     assert content_file.decoded_content == str_content
 
     # get contents with content fetch type
     content_file, fetch_type = repo.get_contents(
-        "test-folder/test-file.html", ref="master", return_fetch_type=True
+        "test-folder/test-file.html", ref="main", return_fetch_type=True
     )
     assert content_file.name == "test-file.html"
     assert fetch_type == "contents"
@@ -289,22 +258,22 @@ def test_github_repo_get_contents_single_file(httpretty):
 
 def test_github_repo_get_last_updated(httpretty):
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
-    register_commits_uri(
+    commit_dates = [
+        "2021-03-01T10:00:00Z",
+        "2021-02-14T10:00:00Z",
+        "2021-02-01T10:00:00Z",
+    ]
+    commits_response = [
+        {"commit": {"committer": {"date": commit_date}}} for commit_date in commit_dates
+    ]
+    register_uri(
         httpretty,
-        owner="test",
-        repo="foo",
-        path="test-folder%2Ftest-file.html",
-        sha="master",
-        commit_dates=[
-            "2021-03-01T10:00:00Z",
-            "2021-02-14T10:00:00Z",
-            "2021-02-01T10:00:00Z",
-        ],
+        "repos/test/foo/commits",
+        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        body=commits_response,
     )
 
-    last_updated = repo.get_last_updated(
-        path="test-folder/test-file.html", ref="master"
-    )
+    last_updated = repo.get_last_updated(path="test-folder/test-file.html", ref="main")
     assert last_updated == date(2021, 3, 1)
 
 
@@ -344,14 +313,15 @@ def test_github_repo_get_contents_exceptions(
     """
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
     # Mock the github request
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/contents/test-folder%2Ftest-file.html?ref=master",
+    register_uri(
+        httpretty,
+        "repos/test/foo/contents/test-folder/test-file.html",
+        queryparams=dict(ref="main"),
         status=status_code,
-        body=json.dumps(body),
+        body=body,
     )
     with pytest.raises(expected_exception, match=expected_match):
-        repo.get_contents("test-folder/test-file.html", ref="master")
+        repo.get_contents("test-folder/test-file.html", ref="main")
 
 
 @pytest.mark.parametrize(
@@ -368,29 +338,29 @@ def test_github_repo_matching_file_from_parent_contents(
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
     # Mock the github requests
     # get the parent folder contents
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/contents/test-folder?ref=main",
-        status=200,
-        body=json.dumps(
-            [
-                {
-                    "name": "test-file.html",
-                    "path": "test-folder/test-file.html",
-                    "sha": "abcd1234",
-                    "size": 1234,
-                    "encoding": "base64",
-                },
-                {
-                    "name": "test-file1.html",
-                    "path": "test-folder/test-file1.html",
-                    "sha": "abcd2345",
-                    "size": 1234,
-                    "encoding": "base64",
-                },
-            ],
-        ),
+    response_json = [
+        {
+            "name": "test-file.html",
+            "path": "test-folder/test-file.html",
+            "sha": "abcd1234",
+            "size": 1234,
+            "encoding": "base64",
+        },
+        {
+            "name": "test-file1.html",
+            "path": "test-folder/test-file1.html",
+            "sha": "abcd2345",
+            "size": 1234,
+            "encoding": "base64",
+        },
+    ]
+    register_uri(
+        httpretty,
+        "repos/test/foo/contents/test-folder",
+        queryparams=dict(ref="main"),
+        body=response_json,
     )
+
     matching_file = repo.matching_file_from_parent_contents(filepath, "main")
     if expected_filename is None:
         assert matching_file is None
@@ -401,30 +371,29 @@ def test_github_repo_matching_file_from_parent_contents(
 def test_github_repo_get_contents_folder(httpretty):
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
     # Mock the github request
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/contents/test-folder?ref=master",
-        status=200,
-        body=json.dumps(
-            [
-                {
-                    "name": "test-file1.html",
-                    "path": "test-folder/test-file1.html",
-                    "sha": "abcd1234",
-                    "size": 1234,
-                    "encoding": "base64",
-                },
-                {
-                    "name": "test-file2.html",
-                    "path": "test-folder/test-file2.html",
-                    "sha": "abcd5678",
-                    "size": 1234,
-                    "encoding": "base64",
-                },
-            ]
-        ),
+    response_json = [
+        {
+            "name": "test-file1.html",
+            "path": "test-folder/test-file1.html",
+            "sha": "abcd1234",
+            "size": 1234,
+            "encoding": "base64",
+        },
+        {
+            "name": "test-file2.html",
+            "path": "test-folder/test-file2.html",
+            "sha": "abcd5678",
+            "size": 1234,
+            "encoding": "base64",
+        },
+    ]
+    register_uri(
+        httpretty,
+        "repos/test/foo/contents/test-folder",
+        queryparams=dict(ref="main"),
+        body=response_json,
     )
-    contents = repo.get_contents("test-folder", ref="master")
+    contents = repo.get_contents("test-folder", ref="main")
     assert isinstance(contents, list)
     assert len(contents) == 2
     assert contents[0].name == "test-file1.html"
@@ -451,47 +420,42 @@ def test_github_repo_get_contents_from_git_blob(httpretty):
     b64_content = b64encode(bytes(str_content, encoding="utf-8")).decode()
     # Mock the github requests
     # get the parent folder contents
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/contents/test-folder?ref=main",
-        status=200,
-        body=json.dumps(
-            [
-                {
-                    "name": "test-file.html",
-                    "path": "test-folder/test-file.html",
-                    "sha": "abcd1234",
-                    "size": 1234,
-                    "encoding": "base64",
-                },
-            ]
-        ),
-    )
-    # get the git blob
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/git/blobs/abcd1234",
-        status=200,
-        body=json.dumps(
-            {
-                "name": "test-file.html",
-                "path": "test-folder/test-file.html",
-                "sha": "abcd1234",
-                "size": 1234,
-                "encoding": "base64",
-                "content": b64_content,
-            }
-        ),
-    )
-    # get the commits for last updated
-    register_commits_uri(
+    response_json = [
+        {
+            "name": "test-file.html",
+            "path": "test-folder/test-file.html",
+            "sha": "abcd1234",
+            "size": 1234,
+            "encoding": "base64",
+        },
+    ]
+    register_uri(
         httpretty,
-        owner="test",
-        repo="foo",
-        path="test-folder%2Ftest-file.html",
-        sha="main",
-        commit_dates="2021-03-01T10:00:00Z",
+        "repos/test/foo/contents/test-folder",
+        queryparams=dict(ref="main"),
+        body=response_json,
     )
+
+    # get the git blob
+    response_json = {
+        "name": "test-file.html",
+        "path": "test-folder/test-file.html",
+        "sha": "abcd1234",
+        "size": 1234,
+        "encoding": "base64",
+        "content": b64_content,
+    }
+    register_uri(httpretty, "repos/test/foo/git/blobs/abcd1234", body=response_json)
+
+    # get the commits for last updated
+    commits_response = [{"commit": {"committer": {"date": "2021-03-01T10:00:00Z"}}}]
+    register_uri(
+        httpretty,
+        "repos/test/foo/commits",
+        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        body=commits_response,
+    )
+
     content_file = repo.get_contents(
         "test-folder/test-file.html", "main", from_git_blob=True
     )
@@ -520,56 +484,55 @@ def test_github_repo_get_contents_too_large_file(httpretty):
 
     # Mock the github requests
     # First tries the contents endpoint and gets a 403
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/contents/test-folder%2Ftest-file.html?ref=main",
+    register_uri(
+        httpretty,
+        "repos/test/foo/contents/test-folder/test-file.html",
         status=403,
-        body=json.dumps(
-            {"errors": [{"code": "too_large", "message": "File was too large"}]}
-        ),
+        queryparams=dict(ref="main"),
+        body={"errors": [{"code": "too_large", "message": "File was too large"}]},
     )
+
     # gets the parent folder contents
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/contents/test-folder?ref=main",
+    register_uri(
+        httpretty,
+        "repos/test/foo/contents/test-folder",
         status=200,
-        body=json.dumps(
-            [
-                {
-                    "name": "test-file.html",
-                    "path": "test-folder/test-file.html",
-                    "sha": "abcd1234",
-                    "size": 1234,
-                    "encoding": "base64",
-                },
-            ]
-        ),
-    )
-    # then gets the git blob
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo/git/blobs/abcd1234",
-        status=200,
-        body=json.dumps(
+        queryparams=dict(ref="main"),
+        body=[
             {
                 "name": "test-file.html",
                 "path": "test-folder/test-file.html",
                 "sha": "abcd1234",
                 "size": 1234,
                 "encoding": "base64",
-                "content": b64_content,
-            }
-        ),
+            },
+        ],
     )
-    # get the commits for last updated
-    register_commits_uri(
+
+    # then gets the git blob
+    register_uri(
         httpretty,
-        owner="test",
-        repo="foo",
-        path="test-folder%2Ftest-file.html",
-        sha="main",
-        commit_dates="2021-03-01T10:00:00Z",
+        "repos/test/foo/git/blobs/abcd1234",
+        status=200,
+        body={
+            "name": "test-file.html",
+            "path": "test-folder/test-file.html",
+            "sha": "abcd1234",
+            "size": 1234,
+            "encoding": "base64",
+            "content": b64_content,
+        },
     )
+
+    # get the commits for last updated
+    commits_response = [{"commit": {"committer": {"date": "2021-03-01T10:00:00Z"}}}]
+    register_uri(
+        httpretty,
+        "repos/test/foo/commits",
+        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        body=commits_response,
+    )
+
     content_file = repo.get_contents("test-folder/test-file.html", ref="main")
     assert content_file.decoded_content == str_content
     assert content_file.last_updated == date(2021, 3, 1)
@@ -590,12 +553,7 @@ def test_github_repo_override_url():
 
 def test_clear_cache(httpretty, reset_environment_after_test):
     # mock the requests
-    httpretty.register_uri(
-        httpretty.GET,
-        "https://api.github.com/repos/test/foo",
-        status=200,
-        body=json.dumps({"name": "foo"}),
-    )
+    register_uri(httpretty, "repos/test/foo", body={"name": "foo"})
     httpretty.register_uri(httpretty.GET, "https://www.test.com/", status=200)
 
     # make sure we start with a fresh cache
@@ -617,6 +575,7 @@ def test_clear_cache(httpretty, reset_environment_after_test):
     assert list(client.session.cache.urls) == ["https://www.test.com/"]
 
 
+@pytest.mark.integration
 def test_integration(reset_environment_after_test):
     """Test repo methods with a real github repo"""
     # make sure we start with a fresh cache
