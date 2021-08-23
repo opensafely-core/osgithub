@@ -123,8 +123,8 @@ class GithubClient:
         """
         repo_path_seqments = ["repos", owner, name]
         # call it to raise exceptions in case it doesn't exist
-        self.get_json(repo_path_seqments)
-        return GithubRepo(self, owner, name)
+        repo_response = self.get_json(repo_path_seqments)
+        return GithubRepo(self, owner, name, about=repo_response["description"])
 
 
 class GithubRepo:
@@ -135,13 +135,15 @@ class GithubRepo:
         client (a GithubClient)
         owner (str): Repo owner
         name (str): Repo name
+        about (str): Repo description
         repo_path_segments (list): base path segments for this repo, generated from owner and name
     """
 
-    def __init__(self, client, owner, name):
+    def __init__(self, client, owner, name, about=None):
         self.client = client
         self.owner = owner
         self.name = name
+        self.about = about
         self.repo_path_segments = ["repos", owner, name]
         self._url = None
 
@@ -384,10 +386,10 @@ class GithubRepo:
         Returns:
             dict: 2 key dictionary with about and name as keys
         """
-        response = self.client.get_json(self.repo_path_segments)
-        description = response["description"]
-        name = response["name"]
-        return {"name": name, "about": description}
+        if self.about is None:
+            response = self.client.get_json(self.repo_path_segments)
+            self.about = response["description"]
+        return {"name": self.name, "about": self.about}
 
     def get_tags(self):
         """

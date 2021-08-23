@@ -28,7 +28,7 @@ def register_uri(httpretty, path, queryparams=None, status=200, body=None):
 
 def test_github_client_get_repo(httpretty):
     # Mock the github request
-    register_uri(httpretty, "repos/test/foo", body={"name": "foo"})
+    register_uri(httpretty, "repos/test/foo", body={"name": "foo", "description": ""})
     client = GithubClient()
     repo = client.get_repo("test", "foo")
     assert repo.repo_path_segments == ["repos", "test", "foo"]
@@ -45,6 +45,13 @@ def test_github_client_token(reset_environment_after_test):
     assert "Authorization" not in client.headers
 
 
+def test_github_repo_get_url():
+    repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
+    assert repo._url is None
+    assert repo.url == "https://github.com/test/foo"
+    assert repo._url == repo.url
+
+
 def test_github_client_get_repo_not_found(httpretty):
     # Mock the github request
     register_uri(httpretty, "repos/test/bar", status=404, body={"message": "Not found"})
@@ -58,7 +65,9 @@ def test_github_client_get_repo_with_cache(httpretty, use_cache):
     client = GithubClient(use_cache=use_cache)
 
     # set up mock request with valid response and call it
-    register_uri(httpretty, "repos/test/test-cache", body={"name": "foo"})
+    register_uri(
+        httpretty, "repos/test/test-cache", body={"name": "foo", "description": ""}
+    )
     client.get_repo("test", "test-cache")
 
     # re-mock the repos request to a 404, should raise an exception if called directly
@@ -145,20 +154,22 @@ def test_github_repo_get_open_pull_request_count(httpretty):
 
 def test_github_repo_get_branches(httpretty):
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
+    sha1 = "1" * 40
+    sha2 = "2" * 40
     branches = [
         {
             "name": "test_branch",
             "commit": {
-                "sha": "1aaa11aa111aaa1aaa1aaa11a1a01a1aa2a11111",
-                "url": "https://api.github.com/repos/test/foo/commits/1aaa11aa111aaa1aaa1aaa11a1a01a1aa2a11111",
+                "sha": sha1,
+                "url": f"https://api.github.com/repos/test/foo/commits/{sha1}",
             },
             "protected": False,
         },
         {
             "name": "test_branch1",
             "commit": {
-                "sha": "2aaa11aa111aaa1aaa1aaa11a1a01a1aa2a11111",
-                "url": "https://api.github.com/repos/test/foo/commits/2aaa11aa111aaa1aaa1aaa11a1a01a1aa2a11111",
+                "sha": sha2,
+                "url": f"https://api.github.com/repos/test/foo/commits/{sha2}",
             },
             "protected": False,
         },
@@ -538,22 +549,93 @@ def test_github_repo_get_contents_too_large_file(httpretty):
     assert content_file.last_updated == date(2021, 3, 1)
 
 
-def test_github_repo_get_url():
+def test_github_repo_get_readme(httpretty):
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
-    assert repo._url is None
-    assert repo.url == "https://github.com/test/foo"
-    assert repo._url == repo.url
+    readme_str_content = """
+        # Foo
+        A README.
+    """
+    # Content retrieved from GitHub is base64-encoded, decoded to str for json
+    b64_content = b64encode(bytes(readme_str_content, encoding="utf-8")).decode()
+    register_uri(
+        httpretty,
+        "repos/test/foo/readme",
+        queryparams={"ref": "main"},
+        status=200,
+        body={
+            "name": "README.md",
+            "path": "README.md",
+            "sha": "abcd1234",
+            "size": 1234,
+            "encoding": "base64",
+            "content": b64_content,
+        },
+    )
+    readme_content = repo.get_readme(tag="main")
+    assert readme_content == readme_str_content
 
 
-def test_github_repo_override_url():
-    # Overriding the url allows tests to
+def test_github_repo_details(httpretty):
+    register_uri(
+        httpretty,
+        "repos/test/foo",
+        status=200,
+        body={"name": "foo", "description": "A test repo"},
+    )
+    # If the repo is instantiated with an "about", the endpoint isn't called
+    repo = GithubRepo(
+        client=GithubClient(use_cache=False),
+        owner="test",
+        name="foo",
+        about="A different description",
+    )
+    details = repo.get_repo_details()
+    assert details == {"name": "foo", "about": "A different description"}
+    assert httpretty.latest_requests() == []
+
+    # instantiate with no "about" arg, need to fetch it for the details
+    repo1 = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
+    details = repo1.get_repo_details()
+    assert details == {"name": "foo", "about": "A test repo"}
+    latest_requests = httpretty.latest_requests()
+    assert len(latest_requests) == 1
+    assert latest_requests[0].url == "https://api.github.com/repos/test/foo"
+
+
+def test_github_repo_get_tags(httpretty):
+    sha1 = "1" * 40
+    sha2 = "2" * 40
+    tags = [
+        {"name": "v1.0", "commit": {"sha": sha1}},
+        {"name": "v2.0", "commit": {"sha": sha2}},
+    ]
+    register_uri(httpretty, "repos/test/foo/tags", status=200, body=tags)
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
-    assert repo.url == "https://github.com/test/foo"
+    assert repo.get_tags() == [
+        {"tag_name": "v1.0", "sha": sha1},
+        {"tag_name": "v2.0", "sha": sha2},
+    ]
+
+
+def test_github_repo_get_commit(httpretty):
+    sha = "1" * 40
+    commit_body = {
+        "author": {"name": "Donald Duck"},
+        "committer": {"date": "2021-03-01T10:00:00Z"},
+    }
+    register_uri(
+        httpretty, f"repos/test/foo/git/commits/{sha}", status=200, body=commit_body
+    )
+    repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
+    assert repo.get_commit(sha) == {
+        "author": "Donald Duck",
+        "date": "2021-03-01T10:00:00Z",
+    }
 
 
 def test_clear_cache(httpretty, reset_environment_after_test):
     # mock the requests
-    register_uri(httpretty, "repos/test/foo", body={"name": "foo"})
+    register_uri(httpretty, "repos/test/foo", body={"name": "foo", "description": ""})
     httpretty.register_uri(httpretty.GET, "https://www.test.com/", status=200)
 
     # make sure we start with a fresh cache
