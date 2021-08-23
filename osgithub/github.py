@@ -74,6 +74,23 @@ class GithubClient:
         else:
             self.session = requests.Session()
 
+    def get(self, path_segments, headers, **add_args):
+        """
+        Builds and calls a url from the base and path segments
+
+        Args:
+            path_segments (list of str): segments of path after the base url
+            headers: headers to pass to the request
+            **add_args: any querystring args to be added (k=v pairs)
+
+        Returns: Response
+        """
+        f = furl(self.base_url)
+        f.path.segments += path_segments
+        if add_args:
+            f.add(add_args)
+        return self.session.get(f.url, headers=headers)
+
     def get_json(self, path_segments, **add_args):
         """
         Builds and calls a url from the base and path segments
@@ -88,11 +105,7 @@ class GithubClient:
             GithubAPIFileTooLarge: if the file is too large
             GithubAPIException: other api errors
         """
-        f = furl(self.base_url)
-        f.path.segments += path_segments
-        if add_args:
-            f.add(add_args)
-        response = self.session.get(f.url, headers=self.headers)
+        response = self.get(path_segments, self.headers, **add_args)
 
         # Report some expected errors
         if response.status_code == 403:
@@ -375,9 +388,12 @@ class GithubRepo:
             str: HTML from readme (at ROOT)
         """
         path_segments = [*self.repo_path_segments, "readme"]
-        content = self.client.get_json(path_segments, ref=tag)
-        content_file = GithubContentFile.from_json({**content})
-        return content_file.decoded_content
+        headers = {
+            **self.client.headers,
+            "Accept": "application/vnd.github.v3.html+json",
+        }
+        response = self.client.get(path_segments, headers, ref=tag)
+        return response.content.decode("utf-8")
 
     def get_repo_details(self):
         """

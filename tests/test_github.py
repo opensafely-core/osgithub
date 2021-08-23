@@ -551,28 +551,16 @@ def test_github_repo_get_contents_too_large_file(httpretty):
 
 def test_github_repo_get_readme(httpretty):
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
-    readme_str_content = """
-        # Foo
-        A README.
-    """
-    # Content retrieved from GitHub is base64-encoded, decoded to str for json
-    b64_content = b64encode(bytes(readme_str_content, encoding="utf-8")).decode()
-    register_uri(
-        httpretty,
-        "repos/test/foo/readme",
-        queryparams={"ref": "main"},
+    readme_content = b"<div id='readme'><h1>Foo</h1><p>A README.</p></div>"
+    httpretty.register_uri(
+        httpretty.GET,
+        "https://api.github.com/repos/test/foo/readme?ref=main",
         status=200,
-        body={
-            "name": "README.md",
-            "path": "README.md",
-            "sha": "abcd1234",
-            "size": 1234,
-            "encoding": "base64",
-            "content": b64_content,
-        },
+        body=readme_content,
+        match_querystring=True,
     )
     readme_content = repo.get_readme(tag="main")
-    assert readme_content == readme_str_content
+    assert readme_content == "<div id='readme'><h1>Foo</h1><p>A README.</p></div>"
 
 
 def test_github_repo_details(httpretty):
@@ -693,10 +681,8 @@ def test_integration(reset_environment_after_test):
 
     # Fetch README
     readme = repo.get_readme(tag="master")
-    assert (
-        readme
-        == "# output-explorer Tests\n\nThis is a test repo for use by output-explorer's tests.\n\n"
-    )
+    assert readme.startswith("<div")
+    assert "This is a test repo for use by output-explorer's tests." in readme
 
     # Fetch details
     details = repo.get_repo_details()
