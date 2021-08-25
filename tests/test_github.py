@@ -372,7 +372,7 @@ def test_github_repo_matching_file_from_parent_contents(
         body=response_json,
     )
 
-    matching_file = repo.matching_file_from_parent_contents(filepath, "main")
+    matching_file = repo.get_matching_file_from_parent_contents(filepath, "main")
     if expected_filename is None:
         assert matching_file is None
     else:

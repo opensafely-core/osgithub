@@ -186,7 +186,7 @@ class GithubRepo:
         path_segments = [*self.repo_path_segments, "pulls"]
         return self.client.get_json(path_segments, state=state, page=page, per_page=30)
 
-    def pull_request_count(self, state):
+    def get_pull_request_count(self, state):
         """
         Gets the total pull request count for this repo, fetching multiple pages if necessary.
 
@@ -215,7 +215,7 @@ class GithubRepo:
         Returns:
             int
         """
-        return self.pull_request_count("open")
+        return self.get_pull_request_count("open")
 
     def get_branches(self):
         """
@@ -292,7 +292,7 @@ class GithubRepo:
         parent_folder_path = str(Path(path).parent)
         return self.get_contents(parent_folder_path, ref)
 
-    def matching_file_from_parent_contents(self, path, ref):
+    def get_matching_file_from_parent_contents(self, path, ref):
         """
         Given a filepath, return the first matching file from the file's parent folder
 
@@ -327,7 +327,7 @@ class GithubRepo:
             dict
         """
         # Find the file in the parent folder whose name matches the file we want
-        matching_content_file = self.matching_file_from_parent_contents(path, ref)
+        matching_content_file = self.get_matching_file_from_parent_contents(path, ref)
         blob = self.get_git_blob(matching_content_file.sha)
         return blob
 
