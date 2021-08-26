@@ -29,8 +29,9 @@ jobs:
           python-version: 3.7
           cache: "pip"
           cache-dependency-path: requirements.*.txt
+
       - uses: extractions/setup-just@v1
       - name: Run tests
-#       env:  # Add environment variables required for tests
+        env:  # Add environment variables required for tests
         run: |
           just test
