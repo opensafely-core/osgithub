@@ -69,9 +69,9 @@ requests==2.26.0 \
     # via
     #   -r requirements.prod.in
     #   requests-cache
-requests-cache==0.7.3 \
-    --hash=sha256:cae8d3484896e2b1779a87e9ca7f44c7ca95d71614705978d6be9397f56e7f3a \
-    --hash=sha256:d17c95b0fa52670044356378886dbaf8e25069123d4fced43e05cd13b38c42f8
+requests_cache==0.7.4 \
+    --hash=sha256:4786190991b5f9e8ecfa97a1a6fd02475486e522a6d62f4bea53c32a7c1172c9 \
+    --hash=sha256:ca7b7d138033dffb07922856a55d51934497024f1d5b8425acbcfa58ee97269f
     # via -r requirements.prod.in
 six==1.16.0 \
     --hash=sha256:1e61c37477a1626458e36f7b1d82aa5c9b094fa4802892072e49de9c60c4c926 \
