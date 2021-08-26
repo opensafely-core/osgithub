@@ -35,5 +35,6 @@ jobs:
       - name: Run tests
         env:
           PYTHON_VERSION: python${{ matrix.python-version }}
+          VIRTUAL_ENV: .venv${{ matrix.python-version }}
         run: |
           just test
