@@ -21,13 +21,19 @@ jobs:
     needs: [check]
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        python-version: [3.7, 3.9]
+
     steps:
       - uses: actions/checkout@v2
       - uses: "actions/setup-python@v2"
         with:
-          python-version: "3.9"
+          python-version: ${{ matrix.python-version }}
+
       - uses: extractions/setup-just@v1
       - name: Run tests
-#       env:  # Add environment variables required for tests
+        env:
+          PYTHON_VERSION: python${{ matrix.python-version }}
         run: |
           just test
