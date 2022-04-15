@@ -142,7 +142,6 @@ importlib-metadata==4.2.0 \
     --hash=sha256:057e92c15bc8d9e8109738a48db0ccb31b4d9d5cfbee5a8670879a30be66304b \
     --hash=sha256:b7e52a1f8dec14a75ea73e0891f3060099ca1d8e6a462a4dff11c3e119ea1b31
     # via
-    #   backports.entry-points-selectable
     #   click
     #   flake8
     #   flake8-no-pep420
@@ -231,14 +230,6 @@ pytest==6.2.4 \
 pytest-cov==2.12.1 \
     --hash=sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a \
     --hash=sha256:261ceeb8c227b726249b376b8526b600f38667ee314f910353fa318caa01f4d7
-    # via pytest-cover
-pytest-cover==3.0.0 \
-    --hash=sha256:578249955eb3b5f3991209df6e532bb770b647743b7392d3d97698dc02f39ebb \
-    --hash=sha256:5bdb6c1cc3dd75583bb7bc2c57f5e1034a1bfcb79d27c71aceb0b16af981dbf4
-    # via pytest-coverage
-pytest-coverage==0.0 \
-    --hash=sha256:db6af2cbd7e458c7c9fd2b4207cee75258243c8a81cad31a7ee8cfad5be93c05 \
-    --hash=sha256:dedd084c5e74d8e669355325916dc011539b190355021b037242514dee546368
     # via -r requirements.dev.in
 pytest-env==0.6.2 \
     --hash=sha256:7e94956aef7f2764f3c147d216ce066bf6c42948bb9e293169b1b1c880a580c2

@@ -14,5 +14,5 @@ isort
 pip-tools
 pre-commit
 pytest
-pytest-coverage
+pytest-cov
 pytest-env
