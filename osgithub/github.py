@@ -364,18 +364,18 @@ class GithubRepo:
 
     def get_last_updated(self, path, ref):
         """
-        Finds the date of the last commit for a file
+        Finds the datetime of the last commit for a file
 
         Args:
             path (str): path to the file in the repo
             ref (str): branch/tag/sha
 
         Returns:
-            str: HTML from readme (at ROOT)
+            datetime: a datetime instance of the last commit's committed date
         """
         commits = self.get_commits_for_file(path, ref, number_of_commits=1)
         last_commit_date = commits[0]["commit"]["committer"]["date"]
-        return datetime.strptime(last_commit_date, "%Y-%m-%dT%H:%M:%SZ").date()
+        return datetime.strptime(last_commit_date, "%Y-%m-%dT%H:%M:%SZ")
 
     def get_readme(self, tag="main"):
         """
