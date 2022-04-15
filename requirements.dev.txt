@@ -118,6 +118,7 @@ flake8==4.0.1 \
     # via
     #   -r requirements.dev.in
     #   flake8-builtins
+    #   flake8-no-pep420
 flake8-builtins==1.5.3 \
     --hash=sha256:09998853b2405e98e61d2ff3027c47033adbdc17f9fe44ca58443d876eb00f3b \
     --hash=sha256:7706babee43879320376861897e5d1468e396a40b8918ed7bccf70e5f90b8687
@@ -125,6 +126,10 @@ flake8-builtins==1.5.3 \
 flake8-implicit-str-concat==0.3.0 \
     --hash=sha256:a89ebc50567790fb7b83e032ed4014ae0db70e35d89e269c3323967135023600 \
     --hash=sha256:c0e6ae227e46238e4c87844091f8072892caeccd3bb266576a7d449eadbf53a0
+    # via -r requirements.dev.in
+flake8-no-pep420==2.2.0 \
+    --hash=sha256:a1622f03be67609b81a9e6790e7e69c310eb6fbd7bb81817f7fb91902312bc76 \
+    --hash=sha256:a280a840f84682f683b33b348ad8d3434309b544c142be539f168e13cc16abea
     # via -r requirements.dev.in
 httpretty==1.1.3 \
     --hash=sha256:229ade39175ea4324e767f29dc24e5f846fbc72bf80e1a919b2547a6574ff601
@@ -140,6 +145,7 @@ importlib-metadata==4.2.0 \
     #   backports.entry-points-selectable
     #   click
     #   flake8
+    #   flake8-no-pep420
     #   pep517
     #   pluggy
     #   pre-commit
