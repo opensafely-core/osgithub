@@ -12,7 +12,7 @@ Optionally uses requests caching to avoid repeated calls to the API.
 """
 import json
 from base64 import b64decode
-from datetime import datetime
+from datetime import datetime, timezone
 from os import environ
 from pathlib import Path
 
@@ -375,7 +375,11 @@ class GithubRepo:
         """
         commits = self.get_commits_for_file(path, ref, number_of_commits=1)
         last_commit_date = commits[0]["commit"]["committer"]["date"]
-        return datetime.strptime(last_commit_date, "%Y-%m-%dT%H:%M:%SZ")
+        dt = datetime.strptime(last_commit_date, "%Y-%m-%dT%H:%M:%SZ")
+        # we know GitHub is giving us a UTC timezone because the string ends in
+        # Z, but Python's strptime can't consume that with it's %Z operator so
+        # we're matching it literally and then setting the timezone to UTC.
+        return dt.replace(tzinfo=timezone.utc)
 
     def get_readme(self, tag="main"):
         """
