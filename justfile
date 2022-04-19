@@ -7,7 +7,7 @@ export PIP := BIN + if os_family() == "unix" { "/python -m pip" } else { "/pytho
 # enforce our chosen pip compile flags
 export COMPILE := BIN + "/pip-compile --allow-unsafe --generate-hashes"
 
-export DEFAULT_PYTHON := if os_family() == "unix" { "python3.7" } else { "python" }
+export DEFAULT_PYTHON := if os_family() == "unix" { "python3.9" } else { "python" }
 
 
 # list available commands

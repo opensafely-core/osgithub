@@ -13,7 +13,7 @@ setup(
     url="https://github.com/opensafely-core/osgithub",
     author="OpenSAFELY",
     author_email="tech@opensafely.org",
-    python_requires=">=3.7",
+    python_requires=">=3.9",
     install_requires=["requests", "requests-cache", "furl"],
     entry_points={},
     include_package_data=True,
