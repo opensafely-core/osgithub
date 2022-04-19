@@ -22,16 +22,20 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        python-version: ["3.7", "3.8", "3.9", "3.10"]
+
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: 3.7
+          python-version: ${{ matrix.python-version }}
           cache: "pip"
           cache-dependency-path: requirements.*.txt
 
       - uses: extractions/setup-just@v1
       - name: Run tests
-        env:  # Add environment variables required for tests
-        run: |
-          just test
+        env:
+          PYTHON_VERSION: python${{ matrix.python-version }}
+        run: just test
