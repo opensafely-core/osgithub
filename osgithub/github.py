@@ -25,10 +25,6 @@ class GithubAPIException(Exception):
     ...
 
 
-class GithubAPIFileTooLarge(GithubAPIException):
-    ...
-
-
 class GithubClient:
     """
     A connection to the Github API
@@ -102,22 +98,17 @@ class GithubClient:
         Returns: json
 
         Raises:
-            GithubAPIFileTooLarge: if the file is too large
             GithubAPIException: other api errors
         """
         response = self.get(path_segments, self.headers, **add_args)
 
         # Report some expected errors
-        if response.status_code == 403:
-            errors = response.json().get("errors")
-            if errors:
-                for error in errors:
-                    if error["code"] == "too_large":
-                        raise GithubAPIFileTooLarge("Error: File too large")
-            else:
-                raise GithubAPIException(json.dumps(response.json()))
-        elif response.status_code == 404:
+        if response.status_code == 403 and "errors" not in response.json():
+            raise GithubAPIException(json.dumps(response.json()))
+
+        if response.status_code == 404:
             raise GithubAPIException(response.json()["message"])
+
         # raise any other unexpected status
         response.raise_for_status()
         response_json = response.json()
@@ -259,10 +250,11 @@ class GithubRepo:
 
         else:
             fetch_type = "contents"
-            try:
-                contents = self.client.get_json(path_segments, ref=ref)
-            except GithubAPIFileTooLarge:
-                # If the file is too big, retrieve it from the git blob instead
+            contents = self.client.get_json(path_segments, ref=ref)
+
+            # If this is a single file response and it's bigger than 1MB GitHub
+            # returns an empty content key.  So get it via its blob instead.
+            if isinstance(contents, dict) and not contents["content"]:
                 contents = self.get_contents_from_git_blob(path, ref)
                 fetch_type = "blob"
 

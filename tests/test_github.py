@@ -498,9 +498,16 @@ def test_github_repo_get_contents_too_large_file(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/contents/test-folder/test-file.html",
-        status=403,
+        status=200,
         queryparams=dict(ref="main"),
-        body={"errors": [{"code": "too_large", "message": "File was too large"}]},
+        body={
+            "name": "test-file.html",
+            "path": "test-folder/test-file.html",
+            "sha": "abcd1234",
+            "size": 1234,
+            "encoding": "base64",
+            "content": "",
+        },
     )
 
     # gets the parent folder contents

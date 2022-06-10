@@ -1,14 +1,7 @@
-from .github import (
-    GithubAPIException,
-    GithubAPIFileTooLarge,
-    GithubClient,
-    GithubContentFile,
-    GithubRepo,
-)
+from .github import GithubAPIException, GithubClient, GithubContentFile, GithubRepo
 
 
 __all__ = [
-    "GithubAPIFileTooLarge",
     "GithubAPIException",
     "GithubClient",
     "GithubContentFile",
