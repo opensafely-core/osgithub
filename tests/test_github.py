@@ -639,19 +639,19 @@ def test_clear_cache(httpretty, reset_environment_after_test):
     remove_cache_file_if_exists()
     client = GithubClient(use_cache=True)
     # no github requests have been made, so cache is currently clear
-    assert list(client.session.cache.urls) == []
+    assert client.session.cache.urls() == []
 
     # A real repo
     repo = client.get_repo("test", "foo")
 
     # 1 call made, to get contents
-    assert len(list(client.session.cache.urls)) == 1
+    assert len(client.session.cache.urls()) == 1
     # make another request using this cache session
     client.session.get("https://www.test.com/")
-    assert len(list(client.session.cache.urls)) == 2
+    assert len(client.session.cache.urls()) == 2
     # Clearing the cache only clears urls related to this report
     repo.clear_cache()
-    assert list(client.session.cache.urls) == ["https://www.test.com/"]
+    assert client.session.cache.urls() == ["https://www.test.com/"]
 
 
 @pytest.mark.integration

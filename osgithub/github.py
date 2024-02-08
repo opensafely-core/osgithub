@@ -436,7 +436,7 @@ class GithubRepo:
 
     def clear_cache(self):
         """Clears all request cache urls for this repo"""
-        cached_urls = list(self.client.session.cache.urls)
+        cached_urls = self.client.session.cache.urls()
         repo_path = f"{self.owner}/{self.name}".lower()
         for cached_url in cached_urls:
             if repo_path in cached_url.lower():
