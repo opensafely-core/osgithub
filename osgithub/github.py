@@ -10,6 +10,7 @@ Optionally uses requests caching to avoid repeated calls to the API.
   repo = client.get_repo('my-github-user', 'my-repo')
   content = repo.get_contents('test-folder', ref='main')
 """
+
 import json
 from base64 import b64decode
 from datetime import datetime, timezone
@@ -21,8 +22,7 @@ import requests_cache
 from furl import furl
 
 
-class GithubAPIException(Exception):
-    ...
+class GithubAPIException(Exception): ...
 
 
 class GithubClient:
