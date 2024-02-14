@@ -30,7 +30,7 @@ exclude = [
   "htmlcov",
   "venv",
 ]
-extend-select = [
+lint.extend-select = [
   "A",  # flake8-builtins
   "I",  # isort
   "INP",  # flake8-no-pep420
@@ -38,10 +38,10 @@ extend-select = [
   "UP",  # pyupgrade
   "W",  # pycodestyle warning
 ]
-extend-ignore = [
+lint.extend-ignore = [
   "E501",
   "E731",
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 lines-after-imports = 2
