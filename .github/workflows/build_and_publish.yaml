@@ -6,6 +6,10 @@ on:
 
 jobs:
   tag-new-version:
+    # This if condition acts as a safeguard against confusing tagging behaviour,
+    # should the triggers for this workflow include pull requests in future.
+    # See https://github.com/mathieudutour/github-tag-action/issues/150 for why this if condition is prudent.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.tag.outputs.new_tag }}
