@@ -8,11 +8,6 @@ skip_covered = true
 
 [tool.coverage.html]
 
-[tool.isort]
-profile = "black"
-lines_after_imports = 2
-skip_glob = [".direnv", "venv", ".venv"]
-
 [tool.pytest.ini_options]
 env = [
   "REQUESTS_CACHE_NAME=test_cache",
@@ -20,3 +15,33 @@ env = [
 markers = [
     "integration: tests that call GitHub for real",
 ]
+
+[tool.ruff]
+line-length = 88
+exclude = [
+  ".direnv",
+  ".git",
+  ".github",
+  ".ipynb_checkpoints",
+  ".pytest_cache",
+  ".venv",
+  "__pycache__",
+  "docker",
+  "htmlcov",
+  "venv",
+]
+extend-select = [
+  "A",  # flake8-builtins
+  "I",  # isort
+  "INP",  # flake8-no-pep420
+  "ISC",  # flake8-implicit-str-concat
+  "UP",  # pyupgrade
+  "W",  # pycodestyle warning
+]
+extend-ignore = [
+  "E501",
+  "E731",
+]
+
+[tool.ruff.isort]
+lines-after-imports = 2
