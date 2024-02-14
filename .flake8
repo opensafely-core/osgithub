@@ -8,7 +8,10 @@ ignore =
     # line too long (black fixes long lines, except for long strings which may benefit from being long (eg URLs))
     E501,
     # line break before binary operator (black disagrees)
-    W503
+    W503,
+    # multiple statements on one line (black disagrees, and this is in the ignore defaults for flake8)
+    E701,
+    E704
 max-line-length = 88
 per-file-ignores =
     setup.py:INP001
