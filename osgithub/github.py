@@ -438,9 +438,9 @@ class GithubRepo:
         """Clears all request cache urls for this repo"""
         cached_urls = self.client.session.cache.urls()
         repo_path = f"{self.owner}/{self.name}".lower()
-        for cached_url in cached_urls:
-            if repo_path in cached_url.lower():
-                self.client.session.cache.delete_url(cached_url)
+        self.client.session.cache.delete(
+            urls=filter(lambda url: repo_path in url.lower(), cached_urls)
+        )
 
 
 class GithubContentFile:
