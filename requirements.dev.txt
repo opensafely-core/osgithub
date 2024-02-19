@@ -95,7 +95,9 @@ coverage[toml]==7.4.1 \
     --hash=sha256:f86f368e1c7ce897bf2457b9eb61169a44e2ef797099fb5728482b8d69f3f016 \
     --hash=sha256:f90515974b39f4dea2f27c0959688621b46d96d5a626cf9c53dbc653a895c05c \
     --hash=sha256:fe558371c1bdf3b8fa03e097c523fb9645b8730399c14fe7721ee9c9e2a545d3
-    # via pytest-cov
+    # via
+    #   coverage
+    #   pytest-cov
 distlib==0.3.8 \
     --hash=sha256:034db59a0b96f8ca18035f36290806a9a6e6bd9d1ff91e45a7f172eb17e51784 \
     --hash=sha256:1530ea13e350031b6312d8580ddb6b27a104275a31106523b8f123787f494f64
@@ -167,9 +169,9 @@ pyproject-hooks==1.0.0 \
     --hash=sha256:283c11acd6b928d2f6a7c73fa0d01cb2bdc5f07c57a2eeb6e83d5e56b97976f8 \
     --hash=sha256:f271b298b97f5955d53fb12b72c1fb1948c22c1a6b70b315c54cedaca0264ef5
     # via build
-pytest==8.0.0 \
-    --hash=sha256:249b1b0864530ba251b7438274c4d251c58d868edaaec8762893ad4a0d71c36c \
-    --hash=sha256:50fb9cbe836c3f20f0dfa99c565201fb75dc54c8d76373cd1bde06b06657bdb6
+pytest==8.0.1 \
+    --hash=sha256:267f6563751877d772019b13aacbe4e860d73fe8f651f28112e9ac37de7513ae \
+    --hash=sha256:3e4f16fe1c0a9dc9d9389161c127c3edc5d810c38d6793042fb81d9f48a59fca
     # via
     #   -r requirements.dev.in
     #   pytest-cov
