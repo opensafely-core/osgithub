@@ -630,6 +630,13 @@ def test_github_repo_get_commit(httpretty):
     }
 
 
+def test_github_repo_get_contributors(httpretty):
+    contribs = [{"login": "octocat"}, {"login": "octodog"}]
+    register_uri(httpretty, "repos/test/foo/contributors", status=200, body=contribs)
+    repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
+    assert repo.get_contributors() == ["octocat", "octodog"]
+
+
 def test_clear_cache(httpretty, reset_environment_after_test):
     # mock the requests
     register_uri(httpretty, "repos/test/foo", body={"name": "foo", "description": ""})
