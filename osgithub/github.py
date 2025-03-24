@@ -434,6 +434,18 @@ class GithubRepo:
             "date": content["committer"]["date"],
         }
 
+    def get_contributors(self):
+        """
+        Gets contributors to the repo
+
+        Returns:
+            List of strings, each representing a contributor's login
+        """
+        path_segments = [*self.repo_path_segments, "contributors"]
+        content = self.client.get_json(path_segments)
+        contrib_list = [contrib["login"] for contrib in content]
+        return contrib_list
+
     def clear_cache(self):
         """Clears all request cache urls for this repo"""
         cached_urls = self.client.session.cache.urls()
