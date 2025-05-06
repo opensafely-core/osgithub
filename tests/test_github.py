@@ -28,7 +28,11 @@ def register_uri(httpretty, path, queryparams=None, status=200, body=None):
 
 def test_github_client_get_repo(httpretty):
     # Mock the github request
-    register_uri(httpretty, "repos/test/foo", body={"name": "foo", "description": ""})
+    register_uri(
+        httpretty,
+        "repos/test/foo",
+        body={"name": "foo", "description": "", "topics": []},
+    )
     client = GithubClient()
     repo = client.get_repo("test", "foo")
     assert repo.repo_path_segments == ["repos", "test", "foo"]
@@ -66,7 +70,9 @@ def test_github_client_get_repo_with_cache(httpretty, use_cache):
 
     # set up mock request with valid response and call it
     register_uri(
-        httpretty, "repos/test/test-cache", body={"name": "foo", "description": ""}
+        httpretty,
+        "repos/test/test-cache",
+        body={"name": "foo", "description": "", "topics": ["foo"]},
     )
     client.get_repo("test", "test-cache")
 
@@ -572,28 +578,61 @@ def test_github_repo_get_readme(httpretty):
     assert readme_content == "<div id='readme'><h1>Foo</h1><p>A README.</p></div>"
 
 
-def test_github_repo_details(httpretty):
+def test_github_repo_details_when_provided(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo",
         status=200,
-        body={"name": "foo", "description": "A test repo"},
+        body={"name": "foo", "description": "A test repo", "topics": ["bar"]},
     )
-    # If the repo is instantiated with an "about", the endpoint isn't called
+    # If the repo is instantiated with "about" and "details", the endpoint isn't called
     repo = GithubRepo(
         client=GithubClient(use_cache=False),
         owner="test",
         name="foo",
         about="A different description",
+        details={"topics": ["goo"]},
     )
     details = repo.get_repo_details()
-    assert details == {"name": "foo", "about": "A different description"}
+    assert details == {
+        "name": "foo",
+        "about": "A different description",
+        "topics": ["goo"],
+    }
+    assert repo.topics == ["goo"]
     assert httpretty.latest_requests() == []
 
-    # instantiate with no "about" arg, need to fetch it for the details
-    repo1 = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
+
+@pytest.mark.parametrize(
+    "kwargs,expected",
+    [
+        (  # Values provided at class instantiation take precedence
+            {"about": "an about"},
+            {"name": "foo", "about": "an about", "topics": ["bar"]},
+        ),
+        (
+            {"details": {"topics": ["goo"]}},
+            {"name": "foo", "about": "A test repo", "topics": ["goo"]},
+        ),
+        (
+            {},
+            {"name": "foo", "about": "A test repo", "topics": ["bar"]},
+        ),
+    ],
+)
+def test_github_repo_details_when_not_provided(httpretty, kwargs, expected):
+    register_uri(
+        httpretty,
+        "repos/test/foo",
+        status=200,
+        body={"name": "foo", "description": "A test repo", "topics": ["bar"]},
+    )
+    # instantiate with "about" and/or "details" not provided, need to fetch for the details
+    repo1 = GithubRepo(
+        client=GithubClient(use_cache=False), owner="test", name="foo", **kwargs
+    )
     details = repo1.get_repo_details()
-    assert details == {"name": "foo", "about": "A test repo"}
+    assert details == expected
     latest_requests = httpretty.latest_requests()
     assert len(latest_requests) == 1
     assert latest_requests[0].url == "https://api.github.com/repos/test/foo"
@@ -639,7 +678,11 @@ def test_github_repo_get_contributors(httpretty):
 
 def test_clear_cache(httpretty, reset_environment_after_test):
     # mock the requests
-    register_uri(httpretty, "repos/test/foo", body={"name": "foo", "description": ""})
+    register_uri(
+        httpretty,
+        "repos/test/foo",
+        body={"name": "foo", "description": "", "topics": []},
+    )
     httpretty.register_uri(httpretty.GET, "https://www.test.com/", status=200)
 
     # make sure we start with a fresh cache
@@ -705,6 +748,7 @@ def test_integration(reset_environment_after_test):
     assert details == {
         "name": "output-explorer-test-repo",
         "about": "A test repo for output-explorer's tests",
+        "topics": [],
     }
 
     # Fetch tags

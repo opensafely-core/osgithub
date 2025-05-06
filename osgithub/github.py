@@ -128,7 +128,13 @@ class GithubClient:
         repo_path_seqments = ["repos", owner, name]
         # call it to raise exceptions in case it doesn't exist
         repo_response = self.get_json(repo_path_seqments)
-        return GithubRepo(self, owner, name, about=repo_response["description"])
+        return GithubRepo(
+            self,
+            owner,
+            name,
+            about=repo_response["description"],
+            details={"topics": repo_response["topics"]},
+        )
 
 
 class GithubRepo:
@@ -143,11 +149,12 @@ class GithubRepo:
         repo_path_segments (list): base path segments for this repo, generated from owner and name
     """
 
-    def __init__(self, client, owner, name, about=None):
+    def __init__(self, client, owner, name, about=None, details=None):
         self.client = client
         self.owner = owner
         self.name = name
         self.about = about
+        self._details = details or {}
         self.repo_path_segments = ["repos", owner, name]
         self._url = None
 
@@ -162,6 +169,16 @@ class GithubRepo:
         if self._url is None:
             self._url = f"https://github.com/{self.owner}/{self.name}"
         return self._url
+
+    @property
+    def topics(self):
+        """
+        Gets the topics of the repo
+
+        Returns:
+            list[str]: list of topics
+        """
+        return self.get_repo_details().get("topics")
 
     def get_pull_requests(self, state="open", page=1):
         """
@@ -393,15 +410,16 @@ class GithubRepo:
 
     def get_repo_details(self):
         """
-        Fetches the About and Name of the repo
+        Fetches the About, Name and Topics of the repo
 
         Returns:
-            dict: 2 key dictionary with about and name as keys
+            dict: 3 key dictionary with about, name and topics as keys
         """
-        if self.about is None:
+        if not self.about or not self._details:
             response = self.client.get_json(self.repo_path_segments)
-            self.about = response["description"]
-        return {"name": self.name, "about": self.about}
+            self.about = self.about or response["description"]
+            self._details.setdefault("topics", response["topics"])
+        return {"name": self.name, "about": self.about, **self._details}
 
     def get_tags(self):
         """
