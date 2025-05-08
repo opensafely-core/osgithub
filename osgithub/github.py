@@ -446,6 +446,20 @@ class GithubRepo:
         contrib_list = [contrib["login"] for contrib in content]
         return contrib_list
 
+    def get_topics(self):
+        """
+        Gets the repo's topics.
+
+        If the repo's name and about are also being fetched from GitHub,
+        consider setting `use_cache` to True in the GithubClient to avoid
+        duplicate calls to the repo endpoint.
+
+        Returns:
+            list[str]: list of topics
+        """
+        content = self.client.get_json(self.repo_path_segments)
+        return content["topics"]
+
     def clear_cache(self):
         """Clears all request cache urls for this repo"""
         cached_urls = self.client.session.cache.urls()

@@ -637,6 +637,25 @@ def test_github_repo_get_contributors(httpretty):
     assert repo.get_contributors() == ["octocat", "octodog"]
 
 
+@pytest.mark.parametrize(
+    "use_cache,num_requests",
+    [
+        (True, 1),
+        (False, 2),
+    ],
+)
+def test_github_repo_get_topics(httpretty, use_cache, num_requests):
+    register_uri(
+        httpretty,
+        "repos/test/foo",
+        status=200,
+        body={"name": "foo", "description": "a description", "topics": ["bar", "baz"]},
+    )
+    repo = GithubClient(use_cache=use_cache).get_repo("test", "foo")
+    assert repo.get_topics() == ["bar", "baz"]
+    assert len(httpretty.latest_requests()) == num_requests
+
+
 def test_clear_cache(httpretty, reset_environment_after_test):
     # mock the requests
     register_uri(httpretty, "repos/test/foo", body={"name": "foo", "description": ""})
