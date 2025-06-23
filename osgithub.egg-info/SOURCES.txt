@@ -1,0 +1,12 @@
+LICENSE
+README.md
+pyproject.toml
+setup.py
+osgithub/__init__.py
+osgithub/github.py
+osgithub.egg-info/PKG-INFO
+osgithub.egg-info/SOURCES.txt
+osgithub.egg-info/dependency_links.txt
+osgithub.egg-info/requires.txt
+osgithub.egg-info/top_level.txt
+tests/test_github.py
