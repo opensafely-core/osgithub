@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from os import environ
 
 import pytest
+import responses
 from furl import furl
 from requests.exceptions import HTTPError
 
@@ -17,12 +18,13 @@ def register_uri(httpretty, path, queryparams=None, status=200, body=None):
     url.path.segments += [*path.split("/")]
     if queryparams:
         url.add(queryparams)
-    httpretty.register_uri(
-        httpretty.GET,
+    httpretty.add(
+        responses.GET,
         url.url,
         status=status,
         body=json.dumps(body or ""),
         match_querystring=True,
+        content_type="application/json",
     )
 
 
@@ -62,6 +64,14 @@ def test_github_client_get_repo_not_found(httpretty):
 
 @pytest.mark.parametrize("use_cache", [True, False])
 def test_github_client_get_repo_with_cache(httpretty, use_cache):
+    # Disable global responses assertion for this test.
+    # When we're using the cache, we actually want to update the
+    # HTTP response and try a request again to confirm that we're
+    # still using the original cached response.
+    # Therefore, we expect that not all requests are used in that case.
+    if use_cache:
+        httpretty.assert_all_requests_are_fired = False
+
     client = GithubClient(use_cache=use_cache)
 
     # set up mock request with valid response and call it
@@ -561,8 +571,8 @@ def test_github_repo_get_contents_too_large_file(httpretty):
 def test_github_repo_get_readme(httpretty):
     repo = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
     readme_content = b"<div id='readme'><h1>Foo</h1><p>A README.</p></div>"
-    httpretty.register_uri(
-        httpretty.GET,
+    httpretty.add(
+        responses.GET,
         "https://api.github.com/repos/test/foo/readme?ref=main",
         status=200,
         body=readme_content,
@@ -588,15 +598,15 @@ def test_github_repo_details(httpretty):
     )
     details = repo.get_repo_details()
     assert details == {"name": "foo", "about": "A different description"}
-    assert httpretty.latest_requests() == []
+    assert httpretty.calls == []
 
     # instantiate with no "about" arg, need to fetch it for the details
     repo1 = GithubRepo(client=GithubClient(use_cache=False), owner="test", name="foo")
     details = repo1.get_repo_details()
     assert details == {"name": "foo", "about": "A test repo"}
-    latest_requests = httpretty.latest_requests()
+    latest_requests = httpretty.calls
     assert len(latest_requests) == 1
-    assert latest_requests[0].url == "https://api.github.com/repos/test/foo"
+    assert latest_requests[0].request.url == "https://api.github.com/repos/test/foo"
 
 
 def test_github_repo_get_tags(httpretty):
@@ -653,13 +663,13 @@ def test_github_repo_get_topics(httpretty, use_cache, num_requests):
     )
     repo = GithubClient(use_cache=use_cache).get_repo("test", "foo")
     assert repo.get_topics() == ["bar", "baz"]
-    assert len(httpretty.latest_requests()) == num_requests
+    assert len(httpretty.calls) == num_requests
 
 
 def test_clear_cache(httpretty, reset_environment_after_test):
     # mock the requests
     register_uri(httpretty, "repos/test/foo", body={"name": "foo", "description": ""})
-    httpretty.register_uri(httpretty.GET, "https://www.test.com/", status=200)
+    httpretty.add(responses.GET, "https://www.test.com/", status=200)
 
     # make sure we start with a fresh cache
     remove_cache_file_if_exists()

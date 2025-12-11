@@ -2,8 +2,8 @@ import logging
 from os import environ
 from pathlib import Path
 
-import httpretty as _httpretty
 import pytest
+import responses
 
 
 def remove_cache_file_if_exists():
@@ -32,10 +32,8 @@ def pytest_sessionfinish(session, exitstatus):
 
 @pytest.fixture
 def httpretty():
-    _httpretty.reset()
-    _httpretty.enable()
-    yield _httpretty
-    _httpretty.disable()
+    with responses.RequestsMock() as rsps:
+        yield rsps
 
 
 @pytest.fixture
