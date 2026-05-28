@@ -13,6 +13,8 @@ concurrency:
 jobs:
   tag-new-version:
     name: Tag new version
+    permissions:
+      contents: write
     # This if condition acts as a safeguard against confusing tagging behaviour,
     # should the triggers for this workflow include pull requests in future.
     # See https://github.com/mathieudutour/github-tag-action/issues/150 for why this if condition is prudent.
@@ -38,6 +40,8 @@ jobs:
     runs-on: ubuntu-latest
 
     name: Build and publish PyPI package
+    permissions:
+      contents: write
     needs: tag-new-version
     if: needs.tag-new-version.outputs.tag
     steps:
