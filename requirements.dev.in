@@ -8,6 +8,7 @@ black
 httpretty
 pip-tools
 pre-commit
+virtualenv<20.36
 pytest
 pytest-cov
 pytest-env
