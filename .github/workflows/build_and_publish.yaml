@@ -71,41 +71,8 @@ jobs:
     # Release Assets for use in contexts where we have access to Github but not
     # to PyPI
     - name: Create release
-      id: create_release
-      uses: actions/create-release@v1
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ needs.tag-new-version.outputs.tag }}
-        release_name: ${{ needs.tag-new-version.outputs.tag }}
-        draft: false
-        prerelease: false
-
-    - name: Get release filenames
-      id: get_release_filenames
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        TAG: ${{ needs.tag-new-version.outputs.tag }}
       run: |
-        cd dist
-        whl_filename=$(ls *.whl | head -n 1)
-        sdist_filename=$(ls *.tar.gz | head -n 1)
-        echo "::set-output name=whl_filename::$whl_filename"
-        echo "::set-output name=sdist_filename::$sdist_filename"
-
-    - name: "Upload release asset: wheel"
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ steps.get_release_filenames.outputs.whl_filename }}
-        asset_name: ${{ steps.get_release_filenames.outputs.whl_filename }}
-        asset_content_type: application/zip
-
-    - name: "Upload release asset: sdist"
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: dist/${{ steps.get_release_filenames.outputs.sdist_filename }}
-        asset_name: ${{ steps.get_release_filenames.outputs.sdist_filename }}
-        asset_content_type: application/gzip
+        gh release create "$TAG" dist/*.whl dist/*.tar.gz --title "$TAG" --notes "" --verify-tag
