@@ -18,22 +18,24 @@ source <(just --completions bash)
 just #  shortcut for just --list
 ```
 
-
 ## Local development environment
 
-
 Set up a local development environment with:
-```
-just dev_setup
+
+```sh
+just devenv
 ```
 
 ## Tests
+
 Run the tests with:
-```
+
+```sh
 just test <args>
 ```
 
 Run only the non-integration tests (that don't call GitHub):
-```
+
+```sh
 just test '-m "not integration"'
 ```
