@@ -6,6 +6,10 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tag-new-version:
     # This if condition acts as a safeguard against confusing tagging behaviour,
