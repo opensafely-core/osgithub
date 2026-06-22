@@ -20,7 +20,7 @@ jobs:
           persist-credentials: false
       - uses: opensafely-core/setup-action@5b3030fbbcf069c94e352b4f0a94100fae4dbd82 # v1.6.1
         with:
-          python-version: 3.9
+          python-version: "3.10"
           cache-dependency-path: requirements.*.txt
           install-just: true
       - name: Check formatting, linting and import sorting
