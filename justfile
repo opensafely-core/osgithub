@@ -88,28 +88,26 @@ upgrade env package="": virtualenv
     FORCE=true "{{ just_executable() }}" requirements-{{ env }} $opts
 
 
-# *ARGS is variadic, 0 or more. This allows us to do `just test -k match`, for example.
+# *args is variadic, 0 or more. This allows us to do `just test -k match`, for example.
 # Run the tests
-test *ARGS: devenv
-    $BIN/python -m pytest --cov=. --cov-report html --cov-report term-missing:skip-covered {{ ARGS }}
+test *args: devenv
+    $BIN/python -m pytest --cov=. --cov-report html --cov-report term-missing:skip-covered {{ args }}
 
+format *args=".": devenv
+    $BIN/ruff format --check {{ args }}
 
-black *args=".": devenv
-    $BIN/black --check {{ args }}
-
-
-ruff *args=".": devenv
-    $BIN/ruff check {{ args }}
+lint *args=".": devenv
+    $BIN/ruff check --output-format=full {{ args }}
 
 
 # run the various dev checks but does not change any files
-check: black ruff
+check: format lint
 
 
 # fix formatting and import sort ordering
 fix: devenv
-    $BIN/black .
     $BIN/ruff check --fix .
+    $BIN/ruff format .
 
 # Run the dev project
 run: devenv
