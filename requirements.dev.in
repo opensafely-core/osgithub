@@ -7,7 +7,7 @@
 httpretty
 pip-tools
 pre-commit
-virtualenv<20.36
+virtualenv<21.6
 pytest
 pytest-cov
 pytest-env
