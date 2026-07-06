@@ -177,9 +177,9 @@ requests==2.34.2 \
     # via
     #   -r requirements.prod.in
     #   requests-cache
-requests-cache==1.3.2 \
-    --hash=sha256:bdc3680931f98a1dea509d339ea6b45cea526945b47b250ce63ffd2744ee0b14 \
-    --hash=sha256:c52666c76b08daa94d05a99327dd24afc46f405abc044e8c2267b540f90673d0
+requests-cache==1.3.3 \
+    --hash=sha256:79b72d5ac5143992d1836ad78f4d8e65666061dd44e220548caab3723089826b \
+    --hash=sha256:c8df20ff874ebfc026959e3874e6c12bd6724934cdb10925915908453d4b17e4
     # via -r requirements.prod.in
 six==1.17.0 \
     --hash=sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274 \
