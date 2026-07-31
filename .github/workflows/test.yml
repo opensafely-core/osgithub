@@ -18,7 +18,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: opensafely-core/setup-action@5b3030fbbcf069c94e352b4f0a94100fae4dbd82 # v1.6.1
+      - uses: opensafely-core/setup-action@d9171097dd0d37bdb7bed58f701eb03ff317ed17 # v1.7.0
         with:
           python-version: "3.10"
           cache-dependency-path: requirements.*.txt
@@ -37,7 +37,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: opensafely-core/setup-action@5b3030fbbcf069c94e352b4f0a94100fae4dbd82 # v1.6.1
+      - uses: opensafely-core/setup-action@d9171097dd0d37bdb7bed58f701eb03ff317ed17 # v1.7.0
         with:
           python-version: ${{ matrix.python-version }}
           cache-dependency-path: requirements.*.txt
