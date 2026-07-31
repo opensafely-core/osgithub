@@ -16,6 +16,7 @@ Set the following environment variables:
 
 ```py
 from github_api_cache import GithubClient
+
 # Use the default token, if one is set in the environment.
 client = GithubClient()
 ```
@@ -129,9 +130,9 @@ Set expiry on specific url patterns (falls back to `expire_after` if no match fo
 
 ```py
 urls_expire_after = {
-    '*/pulls': 60,  # expire requests to get pull requests after 60 secs
-    '*/branches': 60 * 5, # expire requests to get branches after 5 mins
-    '*/commits': 30,  # expire requests to get commits after 30 secs
+    "*/pulls": 60,  # expire requests to get pull requests after 60 secs
+    "*/branches": 60 * 5,  # expire requests to get branches after 5 mins
+    "*/commits": 30,  # expire requests to get commits after 30 secs
 }
 client = GithubClient(urls_expire_after=urls_expire_after)
 ```
