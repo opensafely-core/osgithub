@@ -121,7 +121,7 @@ def test_github_repo_get_pull_requests(httpretty, state):
     register_uri(
         httpretty,
         "repos/test/foo/pulls",
-        queryparams=dict(state=state, page=1, per_page=30),
+        queryparams={"state": state, "page": 1, "per_page": 30},
         body=pull_requests[state],
     )
     pulls = repo.get_pull_requests(state)
@@ -146,7 +146,7 @@ def test_github_repo_get_open_pull_request_count(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/pulls",
-        queryparams=dict(state="open", page=1, per_page=30),
+        queryparams={"state": "open", "page": 1, "per_page": 30},
         body=pull_requests,
     )
     assert repo.open_pull_request_count == 2
@@ -195,7 +195,7 @@ def test_github_repo_get_multipage_pull_request_count(httpretty):
         register_uri(
             httpretty,
             "repos/test/foo/pulls",
-            queryparams=dict(state="open", page=i, per_page=30),
+            queryparams={"state": "open", "page": i, "per_page": 30},
             body=pull_requests,
         )
     last_page_pull_requests = [
@@ -209,7 +209,7 @@ def test_github_repo_get_multipage_pull_request_count(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/pulls",
-        queryparams=dict(state="open", page=3, per_page=30),
+        queryparams={"state": "open", "page": 3, "per_page": 30},
         body=last_page_pull_requests,
     )
 
@@ -242,7 +242,7 @@ def test_github_repo_get_contents_single_file(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/contents/test-folder/test-file.html",
-        queryparams=dict(ref="main"),
+        queryparams={"ref": "main"},
         body=reponse_json,
     )
 
@@ -250,7 +250,11 @@ def test_github_repo_get_contents_single_file(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/commits",
-        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        queryparams={
+            "sha": "main",
+            "path": "test-folder/test-file.html",
+            "per_page": 1,
+        },
         body=commits_response,
     )
 
@@ -280,7 +284,11 @@ def test_github_repo_get_last_updated(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/commits",
-        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        queryparams={
+            "sha": "main",
+            "path": "test-folder/test-file.html",
+            "per_page": 1,
+        },
         body=commits_response,
     )
 
@@ -327,7 +335,7 @@ def test_github_repo_get_contents_exceptions(
     register_uri(
         httpretty,
         "repos/test/foo/contents/test-folder/test-file.html",
-        queryparams=dict(ref="main"),
+        queryparams={"ref": "main"},
         status=status_code,
         body=body,
     )
@@ -368,7 +376,7 @@ def test_github_repo_matching_file_from_parent_contents(
     register_uri(
         httpretty,
         "repos/test/foo/contents/test-folder",
-        queryparams=dict(ref="main"),
+        queryparams={"ref": "main"},
         body=response_json,
     )
 
@@ -401,7 +409,7 @@ def test_github_repo_get_contents_folder(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/contents/test-folder",
-        queryparams=dict(ref="main"),
+        queryparams={"ref": "main"},
         body=response_json,
     )
     contents = repo.get_contents("test-folder", ref="main")
@@ -443,7 +451,7 @@ def test_github_repo_get_contents_from_git_blob(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/contents/test-folder",
-        queryparams=dict(ref="main"),
+        queryparams={"ref": "main"},
         body=response_json,
     )
 
@@ -463,7 +471,11 @@ def test_github_repo_get_contents_from_git_blob(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/commits",
-        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        queryparams={
+            "sha": "main",
+            "path": "test-folder/test-file.html",
+            "per_page": 1,
+        },
         body=commits_response,
     )
 
@@ -499,7 +511,7 @@ def test_github_repo_get_contents_too_large_file(httpretty):
         httpretty,
         "repos/test/foo/contents/test-folder/test-file.html",
         status=200,
-        queryparams=dict(ref="main"),
+        queryparams={"ref": "main"},
         body={
             "name": "test-file.html",
             "path": "test-folder/test-file.html",
@@ -515,7 +527,7 @@ def test_github_repo_get_contents_too_large_file(httpretty):
         httpretty,
         "repos/test/foo/contents/test-folder",
         status=200,
-        queryparams=dict(ref="main"),
+        queryparams={"ref": "main"},
         body=[
             {
                 "name": "test-file.html",
@@ -547,7 +559,11 @@ def test_github_repo_get_contents_too_large_file(httpretty):
     register_uri(
         httpretty,
         "repos/test/foo/commits",
-        queryparams=dict(sha="main", path="test-folder/test-file.html", per_page=1),
+        queryparams={
+            "sha": "main",
+            "path": "test-folder/test-file.html",
+            "per_page": 1,
+        },
         body=commits_response,
     )
 
