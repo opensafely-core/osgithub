@@ -353,9 +353,9 @@ typing-extensions==4.15.0 \
     # via
     #   exceptiongroup
     #   virtualenv
-virtualenv==21.7.3 \
-    --hash=sha256:26dfda3c34f29bf1a3ca167426a67658d59979b9954e705aef60a5f724ce1773 \
-    --hash=sha256:5e9e287f5c808070eea3b40403d3368248e64b24f1b60bd9a36e85ac841d2c3e
+virtualenv==21.7.4 \
+    --hash=sha256:376ec93cd6aab3044fa395d7db226db38043b7b5748948044b2a87168525e843 \
+    --hash=sha256:c9d960c95fa458171e58222a5ccab7465298e4b6559977865e627c4719f1e825
     # via
     #   -r requirements.dev.in
     #   pre-commit
