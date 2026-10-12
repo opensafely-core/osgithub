@@ -9,6 +9,8 @@ export COMPILE := BIN + "/pip-compile --allow-unsafe --generate-hashes"
 
 export DEFAULT_PYTHON := if os_family() == "unix" { "python3.10" } else { "python" }
 
+# 7 day cooldown for Pip
+export PIP_UPLOADED_PRIOR_TO := "P7D"
 
 # list available commands
 default:
