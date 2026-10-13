@@ -1,18 +1,6 @@
 version: 2
 
 updates:
-  - package-ecosystem: "pip"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-      time: "08:00"
-      timezone: "Europe/London"
-    commit-message:
-      prefix: "chore: "
-    cooldown:
-      default-days: 7
-
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
