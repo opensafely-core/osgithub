@@ -1,6 +1,6 @@
 import json
 from base64 import b64encode
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from os import environ
 
 import pytest
@@ -293,7 +293,7 @@ def test_github_repo_get_last_updated(httpretty):
     )
 
     last_updated = repo.get_last_updated(path="test-folder/test-file.html", ref="main")
-    assert last_updated == datetime(2021, 3, 1, 10, 0, 0, tzinfo=timezone.utc)
+    assert last_updated == datetime(2021, 3, 1, 10, 0, 0, tzinfo=UTC)
 
 
 @pytest.mark.parametrize(
@@ -569,9 +569,7 @@ def test_github_repo_get_contents_too_large_file(httpretty):
 
     content_file = repo.get_contents("test-folder/test-file.html", ref="main")
     assert content_file.decoded_content == str_content
-    assert content_file.last_updated == datetime(
-        2021, 3, 1, 10, 0, 0, tzinfo=timezone.utc
-    )
+    assert content_file.last_updated == datetime(2021, 3, 1, 10, 0, 0, tzinfo=UTC)
 
 
 def test_github_repo_get_readme(httpretty):
