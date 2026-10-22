@@ -7,6 +7,7 @@ repos:
     - id: check
       name: check
       entry: just check
+      pass_filenames: false
       language: system
       types: [python]
       require_serial: true
