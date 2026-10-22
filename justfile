@@ -10,7 +10,9 @@ export COMPILE := BIN + "/pip-compile --allow-unsafe --generate-hashes"
 export DEFAULT_PYTHON := if os_family() == "unix" { "python3.10" } else { "python" }
 
 # 7 day cooldown for Pip
-export PIP_UPLOADED_PRIOR_TO := "P7D"
+# Temporarily disabled the 7-day pip cooldown to allow installation
+# of certifi 2026.10.19 following the eMudhra CA compromise.
+# TODO: Restore after 27 October 2026.
 
 # list available commands
 default:
