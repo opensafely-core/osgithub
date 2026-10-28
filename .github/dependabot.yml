@@ -12,6 +12,9 @@ updates:
       prefix: "chore: "
     cooldown:
       default-days: 7
+    labels:
+      - "dependencies"
+      - "github_actions"
 
   - package-ecosystem: "pre-commit"
     directory: "/"
@@ -22,3 +25,6 @@ updates:
       timezone: "Europe/London"
     cooldown:
       default-days: 7
+    labels:
+      - "dependencies"
+      - "python"
